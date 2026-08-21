@@ -5,19 +5,30 @@ import { sql } from '@/lib/db'
 const GOOGLE_CLIENT_ID = process.env.AUTH_GOOGLE_ID || ''
 const GOOGLE_CLIENT_SECRET = process.env.AUTH_GOOGLE_SECRET || ''
 
+// MUST exactly match what is registered in Google Cloud Console
+function getRedirectUri(origin: string): string {
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, '')
+  if (siteUrl && !origin.includes('localhost')) {
+    return `${siteUrl}/auth/callback`
+  }
+  return `${origin}/auth/callback`
+}
+
 export async function GET(request: Request) {
-  const { searchParams, origin } = new URL(request.url)
+  const url = new URL(request.url)
+  const { searchParams } = url
+  const origin = url.origin
   const code = searchParams.get('code')
-  const next = searchParams.get('state') || searchParams.get('next') || '/register'
+  const next = searchParams.get('state') || '/register'
 
   if (!code) {
     return NextResponse.redirect(`${origin}/login?error=no_code`)
   }
 
   try {
-    const redirectUri = `${origin}/auth/callback`
+    const redirectUri = getRedirectUri(origin)
 
-    // 1. Exchange code with Google for Access Token
+    // 1. Exchange authorization code with Google for Access Token
     const tokenRes = await fetch('https://oauth2.googleapis.com/token', {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -33,15 +44,14 @@ export async function GET(request: Request) {
     const tokenData = await tokenRes.json()
 
     if (!tokenData.access_token) {
-      console.error('Google token exchange error:', tokenData)
+      console.error('Google token exchange failed:', JSON.stringify(tokenData))
       return NextResponse.redirect(`${origin}/login?error=token_failed`)
     }
 
-    // 2. Fetch User Profile from Google
+    // 2. Fetch user profile from Google
     const userRes = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
       headers: { Authorization: `Bearer ${tokenData.access_token}` },
     })
-
     const googleUser = await userRes.json()
 
     if (!googleUser.email) {
@@ -50,21 +60,18 @@ export async function GET(request: Request) {
 
     // 3. Upsert user in Neon Database
     const email = googleUser.email.toLowerCase()
-    const name = googleUser.name || googleUser.email.split('@')[0]
+    const name = googleUser.name || email.split('@')[0]
 
     try {
       const existing = await sql`SELECT id FROM users WHERE LOWER(email) = LOWER(${email}) LIMIT 1;`
       if (existing.length === 0) {
-        await sql`
-          INSERT INTO users (email, full_name, role)
-          VALUES (${email}, ${name}, 'player');
-        `
+        await sql`INSERT INTO users (email, full_name, role) VALUES (${email}, ${name}, 'player');`
       }
     } catch (dbErr) {
       console.error('Neon user upsert error:', dbErr)
     }
 
-    // 4. Set Session Cookie
+    // 4. Set session cookie
     const cookieStore = await cookies()
     cookieStore.set('eg_user_session', JSON.stringify({
       email,
@@ -75,23 +82,23 @@ export async function GET(request: Request) {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
-      maxAge: 60 * 60 * 24 * 7, // 7 days
+      maxAge: 60 * 60 * 24 * 7,
       path: '/',
     })
 
-    // Forwarding to destination (e.g. /register?captainEmail=...&captainName=...)
-    const autofillParams = new URLSearchParams({
-      email,
-      name,
-    })
+    // 5. Redirect to registration page with autofill info
+    const redirectBase = next.startsWith('/') 
+      ? (process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, '') || origin) + next
+      : origin + '/' + next
+    
+    const autofillParams = new URLSearchParams({ email, name })
+    const finalRedirect = redirectBase.includes('?')
+      ? `${redirectBase}&${autofillParams}`
+      : `${redirectBase}?${autofillParams}`
 
-    const redirectTarget = next.includes('?') 
-      ? `${origin}${next}&${autofillParams.toString()}`
-      : `${origin}${next}?${autofillParams.toString()}`
-
-    return NextResponse.redirect(redirectTarget)
+    return NextResponse.redirect(finalRedirect)
   } catch (err: any) {
-    console.error('Google callback exception:', err)
+    console.error('Google OAuth callback exception:', err)
     return NextResponse.redirect(`${origin}/login?error=oauth_error`)
   }
 }

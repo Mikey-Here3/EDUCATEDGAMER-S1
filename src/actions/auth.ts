@@ -5,11 +5,20 @@ import { revalidatePath } from 'next/cache'
 import { headers, cookies } from 'next/headers'
 
 const GOOGLE_CLIENT_ID = process.env.AUTH_GOOGLE_ID || ''
-const GOOGLE_CLIENT_SECRET = process.env.AUTH_GOOGLE_SECRET || ''
 
 // Master Admin Credentials
 const ADMIN_EMAILS = ['admin@educatedgamer.com', 'ashanmirofficial@gmail.com']
 const ADMIN_PASSWORDS = ['EG@Admin2026!', 'EG@Admin2024!', 'admin123']
+
+// IMPORTANT: This redirect URI must EXACTLY match what you entered in Google Cloud Console
+function getRedirectUri(origin: string) {
+  // On production Vercel, use the canonical site URL to avoid mismatches
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, '') 
+  if (siteUrl && !origin.includes('localhost')) {
+    return `${siteUrl}/auth/callback`
+  }
+  return `${origin}/auth/callback`
+}
 
 export async function getGoogleAuthUrl(nextUrl: string = '/register') {
   try {
@@ -18,7 +27,7 @@ export async function getGoogleAuthUrl(nextUrl: string = '/register') {
     const protocol = host.includes('localhost') ? 'http' : 'https'
     const origin = `${protocol}://${host}`
     
-    const redirectUri = `${origin}/auth/callback`
+    const redirectUri = getRedirectUri(origin)
 
     const params = new URLSearchParams({
       client_id: GOOGLE_CLIENT_ID,
