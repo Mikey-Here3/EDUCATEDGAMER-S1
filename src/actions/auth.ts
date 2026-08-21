@@ -22,6 +22,14 @@ function getRedirectUri(origin: string) {
 
 export async function getGoogleAuthUrl(nextUrl: string = '/register') {
   try {
+    if (!GOOGLE_CLIENT_ID) {
+      return { 
+        success: false, 
+        error: 'AUTH_GOOGLE_ID environment variable is missing on Vercel. Please add it in Vercel Settings and redeploy.' 
+      }
+    }
+    console.log("GOOGLE_CLIENT_ID on server starts with:", GOOGLE_CLIENT_ID.slice(0, 15))
+
     const headerList = await headers()
     const host = headerList.get('host') || 'localhost:3000'
     const protocol = host.includes('localhost') ? 'http' : 'https'
