@@ -58,11 +58,38 @@ export function RegistrationForm({ tournamentId, registeredCount, maxTeams }: { 
     setRoster(updated)
   }
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>, type: 'uid' | 'proof') => {
+  // Upload Loading States
+  const [isUploadingLogo, setIsUploadingLogo] = useState(false)
+  const [isUploadingUid, setIsUploadingUid] = useState(false)
+  const [isUploadingProof, setIsUploadingProof] = useState(false)
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, type: 'logo' | 'uid' | 'proof') => {
     const file = e.target.files?.[0]
-    if (file) {
-      if (type === 'uid') setUidScreenshot(file.name)
-      if (type === 'proof') setPaymentProof(file.name)
+    if (!file) return
+
+    const formData = new FormData()
+    formData.append('file', file)
+
+    if (type === 'logo') setIsUploadingLogo(true)
+    if (type === 'uid') setIsUploadingUid(true)
+    if (type === 'proof') setIsUploadingProof(true)
+
+    try {
+      const { uploadImageToCloudinary } = await import('@/actions/upload')
+      const res = await uploadImageToCloudinary(formData)
+      if (res.success && res.url) {
+        if (type === 'logo') setLogoUrl(res.url)
+        if (type === 'uid') setUidScreenshot(res.url)
+        if (type === 'proof') setPaymentProof(res.url)
+      } else {
+        setError(res.error || 'Failed to upload image to Cloudinary.')
+      }
+    } catch (err: any) {
+      setError('Upload failed. Please check network connection.')
+    } finally {
+      if (type === 'logo') setIsUploadingLogo(false)
+      if (type === 'uid') setIsUploadingUid(false)
+      if (type === 'proof') setIsUploadingProof(false)
     }
   }
 
@@ -184,10 +211,11 @@ export function RegistrationForm({ tournamentId, registeredCount, maxTeams }: { 
               />
             </div>
 
-            {/* Team Logo URL & Live Preview */}
+            {/* Team Logo Upload / URL */}
             <div className="sm:col-span-4">
-              <label className="block text-[11px] font-black text-gray-400 uppercase tracking-widest mb-2 flex items-center gap-1.5">
-                <ImageIcon className="w-3.5 h-3.5 text-gray-500" /> Logo (Optional)
+              <label className="block text-[11px] font-black text-gray-400 uppercase tracking-widest mb-2 flex items-center justify-between">
+                <span className="flex items-center gap-1.5"><ImageIcon className="w-3.5 h-3.5 text-gray-500" /> Logo (Optional)</span>
+                {isUploadingLogo && <span className="text-[10px] text-yellow-400 font-mono animate-pulse">Uploading...</span>}
               </label>
               <div className="flex items-center gap-3">
                 <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-red-600/30 to-black border border-white/10 flex items-center justify-center flex-shrink-0 overflow-hidden shadow-inner">
@@ -197,12 +225,11 @@ export function RegistrationForm({ tournamentId, registeredCount, maxTeams }: { 
                     <span className="font-black text-white text-xs font-mono">{teamInitials}</span>
                   )}
                 </div>
-                <input 
-                  value={logoUrl}
-                  onChange={e => setLogoUrl(e.target.value)}
-                  placeholder="https://image-url..."
-                  className="flex-1 bg-black/60 border border-white/10 focus:border-[#DC2626] rounded-xl px-3 py-3 text-white text-xs focus:outline-none transition-all placeholder:text-gray-700"
-                />
+                <label className="flex-1 flex items-center justify-center gap-2 bg-black/60 hover:bg-white/5 border border-white/10 hover:border-[#DC2626] rounded-xl px-3 py-3 text-white text-xs cursor-pointer transition-all">
+                  <Upload className="w-3.5 h-3.5 text-gray-500" />
+                  <span className="text-gray-400 truncate">{logoUrl ? 'Change Logo' : 'Upload File'}</span>
+                  <input type="file" accept="image/*" onChange={e => handleFileUpload(e, 'logo')} className="hidden" />
+                </label>
               </div>
             </div>
           </div>
@@ -385,24 +412,48 @@ export function RegistrationForm({ tournamentId, registeredCount, maxTeams }: { 
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
-            <label className="block text-[11px] font-black text-gray-400 uppercase tracking-widest mb-2">Captain Profile Screenshot (Optional)</label>
+            <label className="block text-[11px] font-black text-gray-400 uppercase tracking-widest mb-2 flex items-center justify-between">
+              <span>Captain Profile Screenshot (Optional)</span>
+              {isUploadingUid && <span className="text-[10px] text-yellow-400 font-mono animate-pulse">Uploading to Cloudinary...</span>}
+            </label>
             <label className="border-2 border-dashed border-white/10 hover:border-[#DC2626]/50 bg-black/40 rounded-xl p-6 flex flex-col items-center justify-center text-center cursor-pointer transition-all">
               <input type="file" accept="image/*" onChange={e => handleFileUpload(e, 'uid')} className="hidden" />
-              <Upload className="w-6 h-6 text-gray-500 mb-2" />
-              <span className="text-xs text-gray-400 font-bold">
-                {uidScreenshot || 'Attach captain in-game profile screenshot'}
-              </span>
+              {uidScreenshot ? (
+                <div className="space-y-2">
+                  <img src={uidScreenshot} alt="Profile" className="w-16 h-16 object-cover rounded-xl mx-auto border border-green-500/50" />
+                  <span className="text-[11px] text-green-400 font-bold block">✓ Profile Screenshot Uploaded</span>
+                </div>
+              ) : (
+                <>
+                  <Upload className="w-6 h-6 text-gray-500 mb-2" />
+                  <span className="text-xs text-gray-400 font-bold">
+                    Attach captain in-game profile screenshot
+                  </span>
+                </>
+              )}
             </label>
           </div>
 
           <div>
-            <label className="block text-[11px] font-black text-gray-400 uppercase tracking-widest mb-2">Entry Fee Transaction Proof (Optional)</label>
+            <label className="block text-[11px] font-black text-gray-400 uppercase tracking-widest mb-2 flex items-center justify-between">
+              <span>Entry Fee Proof (Optional)</span>
+              {isUploadingProof && <span className="text-[10px] text-yellow-400 font-mono animate-pulse">Uploading to Cloudinary...</span>}
+            </label>
             <label className="border-2 border-dashed border-white/10 hover:border-[#DC2626]/50 bg-black/40 rounded-xl p-6 flex flex-col items-center justify-center text-center cursor-pointer transition-all">
               <input type="file" accept="image/*" onChange={e => handleFileUpload(e, 'proof')} className="hidden" />
-              <Upload className="w-6 h-6 text-gray-500 mb-2" />
-              <span className="text-xs text-gray-400 font-bold">
-                {paymentProof || 'Attach transaction screenshot / receipt'}
-              </span>
+              {paymentProof ? (
+                <div className="space-y-2">
+                  <img src={paymentProof} alt="Proof" className="w-16 h-16 object-cover rounded-xl mx-auto border border-green-500/50" />
+                  <span className="text-[11px] text-green-400 font-bold block">✓ Payment Receipt Uploaded</span>
+                </div>
+              ) : (
+                <>
+                  <Upload className="w-6 h-6 text-gray-500 mb-2" />
+                  <span className="text-xs text-gray-400 font-bold">
+                    Attach transaction screenshot / receipt
+                  </span>
+                </>
+              )}
             </label>
           </div>
         </div>
