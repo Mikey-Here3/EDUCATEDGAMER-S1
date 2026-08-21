@@ -1,7 +1,7 @@
 'use server'
 
 import { sql } from '@/lib/db'
-import { sanitizeInput } from '@/lib/utils'
+import { sanitizeInput, ensureAbsoluteUrl } from '@/lib/utils'
 import { RegistrationResult } from '@/types'
 import { MAX_TEAMS } from '@/lib/constants'
 import { revalidatePath } from 'next/cache'
@@ -17,10 +17,9 @@ export async function registerTeam(formData: any): Promise<RegistrationResult> {
     const sanitizedLeaderUid = sanitizeInput(formData.leaderUid)
     const sanitizedWhatsapp = sanitizeInput(formData.whatsapp)
     const sanitizedDiscord = formData.discord ? sanitizeInput(formData.discord) : null
-    const sanitizedLogoUrl = formData.logoUrl ? sanitizeInput(formData.logoUrl) : null
-
-    const sanitizedUidScreenshot = formData.uidScreenshot ? sanitizeInput(formData.uidScreenshot) : null
-    const sanitizedPaymentProof = formData.paymentProof ? sanitizeInput(formData.paymentProof) : null
+    const sanitizedLogoUrl = formData.logoUrl ? ensureAbsoluteUrl(formData.logoUrl) : null
+    const sanitizedUidScreenshot = formData.uidScreenshot ? ensureAbsoluteUrl(formData.uidScreenshot) : null
+    const sanitizedPaymentProof = formData.paymentProof ? ensureAbsoluteUrl(formData.paymentProof) : null
 
     // Check duplicate team name
     const existing = await sql`

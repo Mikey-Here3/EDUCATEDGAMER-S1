@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Crown, Users, Shield, User, ChevronDown, ChevronUp } from 'lucide-react'
+import { ensureAbsoluteUrl } from '@/lib/utils'
 
 function TeamCard({ team, index }: { team: any; index: number }) {
   const [expanded, setExpanded] = useState(false)
@@ -42,7 +43,7 @@ function TeamCard({ team, index }: { team: any; index: number }) {
             <div className="w-14 h-14 rounded-xl overflow-hidden border border-white/10 flex-shrink-0 bg-gradient-to-br from-red-900/30 to-black flex items-center justify-center">
               {team.logo_url && !imageError ? (
                 <img
-                  src={team.logo_url}
+                  src={ensureAbsoluteUrl(team.logo_url)}
                   alt={team.team_name}
                   onError={() => setImageError(true)}
                   className="w-full h-full object-cover"

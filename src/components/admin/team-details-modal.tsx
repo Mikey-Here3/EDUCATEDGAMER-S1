@@ -11,6 +11,7 @@ import {
 } from '@/components/ui/dialog'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { updateTeamStatus } from '@/actions/admin-teams'
+import { ensureAbsoluteUrl } from '@/lib/utils'
 import { Crown, Phone, Check, X, ShieldAlert, ExternalLink, ImageIcon } from 'lucide-react'
 
 type TeamDetailsModalProps = {
@@ -21,17 +22,18 @@ type TeamDetailsModalProps = {
 
 function ProofImage({ src, alt, label }: { src?: string | null; alt: string; label: string }) {
   const [error, setError] = useState(false)
+  const cleanSrc = ensureAbsoluteUrl(src)
 
-  if (!src || error) {
+  if (!cleanSrc || error) {
     return (
       <div className="bg-black/60 border border-white/10 rounded-xl p-6 text-center space-y-2 flex flex-col items-center justify-center min-h-[160px]">
         <div className="w-10 h-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-gray-500">
           <ImageIcon className="w-5 h-5" />
         </div>
         <p className="text-xs text-gray-400 font-bold uppercase tracking-wider">{label}</p>
-        {src ? (
+        {cleanSrc ? (
           <a
-            href={src}
+            href={cleanSrc}
             target="_blank"
             rel="noreferrer"
             className="inline-flex items-center gap-1 text-[11px] text-[#DC2626] hover:underline font-mono"
@@ -49,13 +51,13 @@ function ProofImage({ src, alt, label }: { src?: string | null; alt: string; lab
     <div className="space-y-2">
       <div className="relative aspect-video w-full rounded-xl overflow-hidden border border-white/10 bg-black/60 group">
         <img
-          src={src}
+          src={cleanSrc}
           alt={alt}
           onError={() => setError(true)}
           className="w-full h-full object-contain"
         />
         <a
-          href={src}
+          href={cleanSrc}
           target="_blank"
           rel="noreferrer"
           className="absolute inset-0 bg-black/70 opacity-0 group-hover:opacity-100 flex items-center justify-center text-xs font-black text-white uppercase tracking-widest gap-2 transition-opacity"
@@ -100,7 +102,7 @@ export default function TeamDetailsModal({ team, isOpen, onClose }: TeamDetailsM
             <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-red-600/30 via-black to-black border border-white/10 flex items-center justify-center overflow-hidden flex-shrink-0 shadow-lg">
               {team.logo_url && !logoError ? (
                 <img
-                  src={team.logo_url}
+                  src={ensureAbsoluteUrl(team.logo_url)}
                   alt="Logo"
                   onError={() => setLogoError(true)}
                   className="w-full h-full object-cover"
