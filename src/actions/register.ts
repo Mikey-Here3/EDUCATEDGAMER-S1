@@ -19,6 +19,9 @@ export async function registerTeam(formData: any): Promise<RegistrationResult> {
     const sanitizedDiscord = formData.discord ? sanitizeInput(formData.discord) : null
     const sanitizedLogoUrl = formData.logoUrl ? sanitizeInput(formData.logoUrl) : null
 
+    const sanitizedUidScreenshot = formData.uidScreenshot ? sanitizeInput(formData.uidScreenshot) : null
+    const sanitizedPaymentProof = formData.paymentProof ? sanitizeInput(formData.paymentProof) : null
+
     // Check duplicate team name
     const existing = await sql`
       SELECT id FROM teams WHERE LOWER(team_name) = LOWER(${sanitizedTeamName}) LIMIT 1;
@@ -37,9 +40,9 @@ export async function registerTeam(formData: any): Promise<RegistrationResult> {
     // 1. Insert team into Neon
     const insertedTeam = await sql`
       INSERT INTO teams (
-        team_code, team_name, leader_name, leader_uid, whatsapp, discord, logo_url, status
+        team_code, team_name, leader_name, leader_uid, whatsapp, discord, logo_url, uid_screenshot_url, payment_proof_url, status
       ) VALUES (
-        ${teamCode}, ${sanitizedTeamName}, ${sanitizedLeaderName}, ${sanitizedLeaderUid}, ${sanitizedWhatsapp}, ${sanitizedDiscord}, ${sanitizedLogoUrl}, 'pending'
+        ${teamCode}, ${sanitizedTeamName}, ${sanitizedLeaderName}, ${sanitizedLeaderUid}, ${sanitizedWhatsapp}, ${sanitizedDiscord}, ${sanitizedLogoUrl}, ${sanitizedUidScreenshot}, ${sanitizedPaymentProof}, 'pending'
       )
       RETURNING id, team_code;
     `

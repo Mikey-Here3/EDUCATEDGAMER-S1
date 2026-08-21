@@ -25,6 +25,36 @@ export function RegistrationForm({ tournamentId, registeredCount, maxTeams }: { 
   const [captainEmail, setCaptainEmail] = useState('')
   const [captainWhatsapp, setCaptainWhatsapp] = useState('')
 
+  // Autofill from Google OAuth redirect
+  const [isGoogleLoading, setIsGoogleLoading] = useState(false)
+  
+  const handleGoogleSignIn = async () => {
+    setIsGoogleLoading(true)
+    try {
+      const { getGoogleAuthUrl } = await import('@/actions/auth')
+      const res = await getGoogleAuthUrl('/register')
+      if (res.success && res.url) {
+        window.location.href = res.url
+      } else {
+        setError(res.error || 'Failed to initialize Google Authentication.')
+        setIsGoogleLoading(false)
+      }
+    } catch (err: any) {
+      setError('Auth initialization error. Please try again.')
+      setIsGoogleLoading(false)
+    }
+  }
+
+  useState(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search)
+      const emailParam = params.get('email')
+      const nameParam = params.get('name')
+      if (emailParam) setCaptainEmail(emailParam)
+      if (nameParam) setCaptainName(nameParam)
+    }
+  })
+
   // Roster (Initial 3 members + Captain = 4 minimum; up to 6 members = 7 total)
   const [roster, setRoster] = useState<PlayerRow[]>([
     { name: '', nickname: '', uid: '' },
@@ -107,11 +137,42 @@ export function RegistrationForm({ tournamentId, registeredCount, maxTeams }: { 
       return
     }
 
+    // UID Numbers Only Validation
+    const isNumeric = (str: string) => /^\d+$/.test(str.trim())
+    
+    if (!isNumeric(captainUid)) {
+      setError('Captain Free Fire UID must contain numbers only.')
+      return
+    }
+
     for (let i = 0; i < 3; i++) {
       if (!roster[i].name || !roster[i].uid) {
         setError(`Please fill in Squad Member #${i + 2} name and UID. Minimum 4 players required.`)
         return
       }
+      if (!isNumeric(roster[i].uid)) {
+        setError(`Squad Member #${i + 2} Free Fire UID must contain numbers only.`)
+        return
+      }
+    }
+
+    // Substitute UID check
+    for (let i = 3; i < roster.length; i++) {
+      if (roster[i].name && roster[i].uid && !isNumeric(roster[i].uid)) {
+        setError(`Substitute Player Free Fire UID must contain numbers only.`)
+        return
+      }
+    }
+
+    // MANDATORY SCREENSHOT VERIFICATION
+    if (!uidScreenshot) {
+      setError('Captain Profile Screenshot is required. Please upload your in-game profile proof.')
+      return
+    }
+
+    if (!paymentProof) {
+      setError('JazzCash Transaction Proof is required. Please send 100 PKR and upload the receipt screenshot.')
+      return
     }
 
     startTransition(async () => {
@@ -122,6 +183,8 @@ export function RegistrationForm({ tournamentId, registeredCount, maxTeams }: { 
         leaderUid: captainUid,
         whatsapp: captainWhatsapp,
         discord: captainEmail,
+        uidScreenshot,
+        paymentProof,
         player2Name: roster[0].nickname ? `${roster[0].name} (${roster[0].nickname})` : roster[0].name,
         player2Uid: roster[0].uid,
         player3Name: roster[1].nickname ? `${roster[1].name} (${roster[1].nickname})` : roster[1].name,
@@ -168,12 +231,14 @@ export function RegistrationForm({ tournamentId, registeredCount, maxTeams }: { 
             <p className="text-gray-400 text-xs mt-0.5">Log in to auto-fill captain email details and sync match notifications.</p>
           </div>
         </div>
-        <a 
-          href="/api/auth/google" 
-          className="flex-shrink-0 bg-gradient-to-r from-red-600 to-red-700 hover:from-red-500 hover:to-red-600 text-white font-bold text-xs uppercase tracking-wider px-5 py-3 rounded-xl shadow-[0_0_20px_rgba(220,38,38,0.3)] transition-all"
+        <button 
+          type="button"
+          disabled={isGoogleLoading}
+          onClick={handleGoogleSignIn}
+          className="flex-shrink-0 bg-gradient-to-r from-red-600 to-red-700 hover:from-red-500 hover:to-red-600 text-white font-bold text-xs uppercase tracking-wider px-5 py-3 rounded-xl shadow-[0_0_20px_rgba(220,38,38,0.3)] transition-all disabled:opacity-50 cursor-pointer"
         >
-          Sign In with Google
-        </a>
+          {isGoogleLoading ? 'Connecting...' : 'Sign In with Google'}
+        </button>
       </div>
 
       {error && (

@@ -108,6 +108,41 @@ export default function TeamDetailsModal({ team, isOpen, onClose }: TeamDetailsM
             </Table>
           </div>
         </div>
+
+        {/* Proof Verification Screenshots */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-4 border-t border-white/10">
+          <div className="bg-black/50 border border-white/5 rounded-xl p-4 space-y-2">
+            <h4 className="font-bold text-gray-400 uppercase tracking-wider text-[11px] mb-1">
+              Captain UID Screenshot
+            </h4>
+            {team.uid_screenshot_url ? (
+              <a href={team.uid_screenshot_url} target="_blank" rel="noreferrer" className="block relative aspect-video w-full rounded-lg overflow-hidden border border-white/10 hover:border-[#DC2626]/50 transition-all">
+                <img src={team.uid_screenshot_url} alt="UID Proof" className="w-full h-full object-cover" />
+                <div className="absolute inset-0 bg-black/60 opacity-0 hover:opacity-100 flex items-center justify-center text-xs font-bold text-white transition-opacity">
+                  View Full Image ↗
+                </div>
+              </a>
+            ) : (
+              <p className="text-xs text-gray-500 italic">No UID screenshot uploaded</p>
+            )}
+          </div>
+
+          <div className="bg-black/50 border border-white/5 rounded-xl p-4 space-y-2">
+            <h4 className="font-bold text-gray-400 uppercase tracking-wider text-[11px] mb-1">
+              JazzCash Payment Receipt
+            </h4>
+            {team.payment_proof_url ? (
+              <a href={team.payment_proof_url} target="_blank" rel="noreferrer" className="block relative aspect-video w-full rounded-lg overflow-hidden border border-white/10 hover:border-[#DC2626]/50 transition-all">
+                <img src={team.payment_proof_url} alt="Payment Proof" className="w-full h-full object-cover" />
+                <div className="absolute inset-0 bg-black/60 opacity-0 hover:opacity-100 flex items-center justify-center text-xs font-bold text-white transition-opacity">
+                  View Full Image ↗
+                </div>
+              </a>
+            ) : (
+              <p className="text-xs text-gray-500 italic">No payment proof receipt uploaded</p>
+            )}
+          </div>
+        </div>
       </DialogContent>
     </Dialog>
   )

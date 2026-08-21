@@ -1,18 +1,16 @@
-import { redirect } from 'next/navigation'
 import Link from 'next/link'
-import { Navbar } from '@/components/layout/navbar'
-import { Footer } from '@/components/layout/footer'
-import { createClient } from '@/lib/supabase/server'
-import { buttonVariants } from '@/components/ui/button'
-import { cn } from '@/lib/utils'
-import { StatusBadge } from '@/components/shared/status-badge'
-import { GlowCard } from '@/components/shared/glow-card'
-import { CopyButton } from '@/components/shared/copy-button'
+import { redirect } from 'next/navigation'
+import Navbar from '@/components/layout/navbar'
+import Footer from '@/components/layout/footer'
+import { sql } from '@/lib/db'
+import { Crown, Users, CheckCircle2, Clock, Copy } from 'lucide-react'
 
-export default async function SuccessPage({ 
-  searchParams 
-}: { 
-  searchParams: Promise<{ code?: string }> | { code?: string } 
+export const revalidate = 0
+
+export default async function SuccessPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ code?: string }>
 }) {
   const resolvedParams = await searchParams
   const teamCode = resolvedParams?.code
@@ -21,28 +19,40 @@ export default async function SuccessPage({
     redirect('/register')
   }
 
-  const supabase = await createClient()
-  
-  const { data: team, error } = await supabase
-    .from('teams')
-    .select(`
-      *,
-      team_players (*)
-    `)
-    .eq('team_code', teamCode)
-    .single()
+  let team: any = null
+  let players: any[] = []
 
-  if (error || !team) {
+  try {
+    const teamRows = await sql`SELECT * FROM teams WHERE team_code = ${teamCode} LIMIT 1;`
+    if (teamRows.length > 0) {
+      team = teamRows[0]
+      const playerRows = await sql`SELECT * FROM players WHERE team_id = ${team.id} ORDER BY created_at ASC;`
+      players = playerRows || []
+    }
+  } catch (err) {
+    console.error('Neon success page error:', err)
+  }
+
+  if (!team) {
     return (
       <div className="min-h-screen flex flex-col bg-[#050507] text-white">
         <Navbar />
         <main className="flex-grow flex items-center justify-center p-4">
-          <div className="text-center">
-            <h1 className="text-3xl font-bold text-red-500 mb-4">Team Not Found</h1>
-            <p className="text-gray-400 mb-6">We couldn't find a team with code {teamCode}.</p>
-            <Link href="/register" className={cn(buttonVariants({ variant: 'default' }))}>
-              Back to Registration
-            </Link>
+          <div className="bg-[#0a0a0f] border border-red-500/30 rounded-2xl p-10 text-center max-w-md space-y-4 shadow-2xl">
+            <div className="w-16 h-16 bg-red-500/10 border border-red-500/30 rounded-2xl flex items-center justify-center mx-auto text-3xl">⚠️</div>
+            <h1 className="text-2xl font-black text-red-400 uppercase tracking-wider font-heading">Team Not Found</h1>
+            <p className="text-gray-400 text-sm">
+              We could not find a team with code <strong className="text-white font-mono">{teamCode}</strong>. 
+              This may be due to a data sync delay. Please try again in a moment.
+            </p>
+            <div className="flex gap-3 pt-2">
+              <Link href="/register" className="flex-1 text-center bg-[#DC2626] hover:bg-red-700 text-white font-black uppercase text-xs tracking-widest py-3 rounded-xl transition-all">
+                Register Again
+              </Link>
+              <Link href="/" className="flex-1 text-center bg-white/5 hover:bg-white/10 border border-white/10 text-white font-black uppercase text-xs tracking-widest py-3 rounded-xl transition-all">
+                Go Home
+              </Link>
+            </div>
           </div>
         </main>
         <Footer />
@@ -50,96 +60,126 @@ export default async function SuccessPage({
     )
   }
 
+  const statusColors: Record<string, string> = {
+    pending: 'bg-yellow-500/10 text-yellow-400 border-yellow-500/30',
+    approved: 'bg-green-500/10 text-green-400 border-green-500/30',
+    rejected: 'bg-red-500/10 text-red-400 border-red-500/30',
+  }
+  const statusColor = statusColors[team.status] || statusColors.pending
+  const teamInitials = team.team_name?.slice(0, 2).toUpperCase() || 'EG'
+
   return (
     <div className="min-h-screen flex flex-col bg-[#050507] text-white">
       <Navbar />
-      
-      <main className="flex-grow container mx-auto px-4 py-16 flex flex-col items-center">
-        <div className="text-6xl mb-6">🎉</div>
-        
-        <h1 className="text-4xl md:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-[#DC2626] to-blue-500 mb-4 text-center">
-          REGISTRATION COMPLETE
-        </h1>
-        
-        <p className="text-gray-400 text-lg text-center max-w-2xl mb-10">
-          Your team has been successfully registered for the tournament. 
-          Please save your team code and join our Discord server for updates.
-        </p>
-        
-        <GlowCard className="w-full max-w-2xl mb-8">
-          <div className="text-center mb-8">
-            <p className="text-sm text-gray-400 uppercase tracking-widest mb-2">Team Code</p>
-            <div className="inline-flex items-center gap-3 bg-[#13131A] px-6 py-3 rounded-lg border border-[#DC2626]/30">
-              <span className="text-3xl font-mono font-bold text-white tracking-wider">{teamCode}</span>
-              <CopyButton text={teamCode} />
-            </div>
+
+      <main className="flex-grow container mx-auto px-4 pt-28 pb-20">
+        <div className="max-w-2xl mx-auto space-y-6">
+
+          {/* Success Header */}
+          <div className="text-center space-y-3">
+            <div className="text-6xl">🎉</div>
+            <h1 className="text-4xl md:text-5xl font-black italic tracking-tight uppercase font-heading">
+              <span className="text-white">Registration </span>
+              <span className="text-[#DC2626]">Complete!</span>
+            </h1>
+            <p className="text-gray-400 text-sm">
+              Your team has been registered. Keep your Team Code safe — it's how we identify your squad!
+            </p>
           </div>
-          
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center border-t border-gray-800 pt-6 mb-6">
-            <div>
-              <h2 className="text-2xl font-bold text-white mb-2">{team.team_name}</h2>
-              <StatusBadge status={team.status} />
+
+          {/* Team Code Card */}
+          <div className="bg-[#0a0a0f] border border-[#DC2626]/30 rounded-2xl p-6 shadow-[0_0_40px_rgba(220,38,38,0.1)] text-center space-y-2">
+            <p className="text-[11px] font-black uppercase text-gray-400 tracking-widest">Your Team Code</p>
+            <div className="flex items-center justify-center gap-3">
+              <span className="text-4xl font-black font-mono text-white tracking-widest">{team.team_code}</span>
             </div>
-            {team.logo_url && (
-              <img 
-                src={team.logo_url} 
-                alt={`${team.team_name} logo`} 
-                className="w-16 h-16 rounded-full object-cover mt-4 sm:mt-0"
-              />
-            )}
+            <p className="text-[11px] text-gray-500">Screenshot this and share with your squad</p>
           </div>
-          
-          <div className="space-y-4">
-            <h3 className="text-lg font-bold text-[#DC2626]">Roster</h3>
-            
-            <div className="grid gap-3">
-              <div className="flex justify-between items-center bg-[#050507] p-3 rounded border border-gray-800">
-                <div>
-                  <span className="text-white font-medium">{team.leader_name}</span>
-                  <span className="ml-2 text-xs bg-[#DC2626]/20 text-[#DC2626] px-2 py-1 rounded">Leader</span>
-                </div>
-                <span className="text-gray-400 font-mono text-sm">{team.leader_uid}</span>
+
+          {/* Team Details Card */}
+          <div className="bg-[#0a0a0f] border border-white/10 rounded-2xl p-6 shadow-2xl space-y-5">
+            {/* Team header */}
+            <div className="flex items-center gap-4 border-b border-white/5 pb-4">
+              <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-red-600/30 to-black border border-white/10 flex items-center justify-center overflow-hidden flex-shrink-0">
+                {team.logo_url ? (
+                  <img src={team.logo_url} alt="Team Logo" className="w-full h-full object-cover" />
+                ) : (
+                  <span className="font-black text-white text-base font-mono">{teamInitials}</span>
+                )}
               </div>
-              
-              {team.team_players?.map((player: any) => (
-                <div key={player.id} className="flex justify-between items-center bg-[#050507] p-3 rounded border border-gray-800">
-                  <div>
-                    <span className="text-white font-medium">{player.player_name}</span>
-                    {player.player_type === 'substitute' && (
-                      <span className="ml-2 text-xs bg-gray-700 text-gray-300 px-2 py-1 rounded">Sub</span>
-                    )}
+              <div className="flex-1">
+                <h2 className="text-xl font-black text-white uppercase font-heading">{team.team_name}</h2>
+                <div className="flex items-center gap-2 mt-1">
+                  <span className={`inline-block text-[10px] font-black uppercase tracking-widest px-2.5 py-0.5 rounded-full border ${statusColor}`}>
+                    {team.status === 'pending' ? '⏳ Pending Approval' : team.status}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Squad Roster */}
+            <div className="space-y-2">
+              <h3 className="text-xs font-black text-gray-400 uppercase tracking-widest flex items-center gap-1.5">
+                <Users className="w-3.5 h-3.5 text-[#DC2626]" /> Squad Roster ({players.length + 1} players)
+              </h3>
+
+              {/* Captain */}
+              <div className="flex items-center justify-between bg-yellow-500/5 border border-yellow-500/20 rounded-xl px-4 py-2.5">
+                <div className="flex items-center gap-2">
+                  <Crown className="w-3.5 h-3.5 text-yellow-400 flex-shrink-0" />
+                  <span className="text-white text-sm font-bold">{team.leader_name}</span>
+                  <span className="text-[10px] text-yellow-400 font-black uppercase tracking-wider bg-yellow-500/10 px-2 py-0.5 rounded-full">Captain</span>
+                </div>
+                <span className="text-gray-400 font-mono text-xs">{team.leader_uid}</span>
+              </div>
+
+              {/* Members */}
+              {players.filter((p: any) => p.player_type !== 'leader').map((player: any, idx: number) => (
+                <div key={player.id} className="flex items-center justify-between bg-black/40 border border-white/5 rounded-xl px-4 py-2.5">
+                  <div className="flex items-center gap-2">
+                    <span className={`text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full ${player.player_type === 'substitute' ? 'bg-gray-700/50 text-gray-400' : 'bg-red-500/10 text-red-400'}`}>
+                      {player.player_type === 'substitute' ? 'Sub' : `P${idx + 2}`}
+                    </span>
+                    <span className="text-white text-sm">{player.player_name}</span>
                   </div>
-                  <span className="text-gray-400 font-mono text-sm">{player.free_fire_uid}</span>
+                  <span className="text-gray-400 font-mono text-xs">{player.free_fire_uid}</span>
                 </div>
               ))}
             </div>
+
+            {/* Status note */}
+            <div className="bg-blue-500/5 border border-blue-500/20 rounded-xl p-3 flex items-start gap-2.5 text-xs text-blue-300">
+              <Clock className="w-4 h-4 text-blue-400 flex-shrink-0 mt-0.5" />
+              <p>Your team is <strong>pending review</strong>. The management will approve your team after verifying the payment proof. You'll receive a WhatsApp notification.</p>
+            </div>
           </div>
-        </GlowCard>
-        
-        <div className="flex flex-col sm:flex-row gap-4 w-full max-w-2xl">
-          <Link 
-            href="https://discord.gg/bE2Cta8q" 
-            target="_blank" 
-            rel="noopener noreferrer"
-            className={cn(
-              buttonVariants({ variant: 'default' }),
-              "flex-1 bg-[#5865F2] hover:bg-[#4752C4] text-white"
-            )}
-          >
-            JOIN DISCORD
-          </Link>
-          <Link 
-            href="/"
-            className={cn(
-              buttonVariants({ variant: 'outline' }),
-              "flex-1 border-gray-700 text-gray-300 hover:text-white"
-            )}
-          >
-            BACK TO HOME
-          </Link>
+
+          {/* Action Buttons */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <Link
+              href="https://chat.whatsapp.com/IS43tYX1KOE6Xe4AgJ2dwt"
+              target="_blank"
+              className="flex items-center justify-center gap-2 bg-[#25D366] hover:bg-[#20ba59] text-black font-black uppercase text-xs tracking-widest py-4 rounded-xl shadow-[0_0_20px_rgba(37,211,102,0.3)] transition-all"
+            >
+              Join WhatsApp Community
+            </Link>
+            <Link
+              href="https://discord.gg/bE2Cta8q"
+              target="_blank"
+              className="flex items-center justify-center gap-2 bg-[#5865F2] hover:bg-[#4752C4] text-white font-black uppercase text-xs tracking-widest py-4 rounded-xl shadow-[0_0_20px_rgba(88,101,242,0.3)] transition-all"
+            >
+              Join Discord Server
+            </Link>
+            <Link
+              href="/teams"
+              className="flex items-center justify-center gap-2 bg-white/5 hover:bg-white/10 border border-white/10 text-white font-black uppercase text-xs tracking-widest py-4 rounded-xl transition-all col-span-full"
+            >
+              View All Registered Teams →
+            </Link>
+          </div>
         </div>
       </main>
-      
+
       <Footer />
     </div>
   )

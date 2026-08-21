@@ -42,6 +42,8 @@ async function setup() {
       whatsapp TEXT NOT NULL,
       discord TEXT,
       logo_url TEXT,
+      uid_screenshot_url TEXT,
+      payment_proof_url TEXT,
       status TEXT NOT NULL DEFAULT 'pending',
       created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
       updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
