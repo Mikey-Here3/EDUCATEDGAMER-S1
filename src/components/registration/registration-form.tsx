@@ -381,22 +381,23 @@ export function RegistrationForm({ tournamentId, registeredCount, maxTeams }: { 
 
         <div className="space-y-4">
           <p className="text-gray-400 text-xs sm:text-sm leading-relaxed">
-            The entry fee for this tournament is <strong className="text-white font-black">{PAYMENT_METHODS.fee}</strong> for the entire squad (including substitutes). Send the fee to any of the accounts below:
+            The entry fee for this tournament is <strong className="text-white font-black">{PAYMENT_METHODS.fee}</strong> for the entire squad (including substitutes). Send the payment via <strong className="text-yellow-400">JazzCash</strong> only:
           </p>
 
-          <div className="bg-black/60 border border-white/5 rounded-xl p-4 sm:p-6 space-y-3 font-mono text-xs sm:text-sm">
-            <div className="flex flex-col sm:flex-row sm:justify-between py-1 border-b border-white/5">
-              <span className="text-gray-500">{PAYMENT_METHODS.easypaisa.title}:</span>
-              <span className="text-white font-bold">{PAYMENT_METHODS.easypaisa.account} ({PAYMENT_METHODS.easypaisa.name})</span>
+          <div className="bg-black/60 border border-yellow-500/30 rounded-xl p-5 sm:p-6 space-y-3">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+              <div>
+                <span className="text-[10px] font-black uppercase text-yellow-400 tracking-wider block">Official JazzCash Account</span>
+                <span className="text-xl sm:text-2xl font-black text-white font-mono">{PAYMENT_METHODS.jazzcash.account}</span>
+              </div>
+              <div className="sm:text-right">
+                <span className="text-[10px] font-bold uppercase text-gray-400 tracking-wider block">Account Title</span>
+                <span className="text-sm font-bold text-yellow-400">{PAYMENT_METHODS.jazzcash.name}</span>
+              </div>
             </div>
-            <div className="flex flex-col sm:flex-row sm:justify-between py-1 border-b border-white/5">
-              <span className="text-gray-500">{PAYMENT_METHODS.jazzcash.title}:</span>
-              <span className="text-white font-bold">{PAYMENT_METHODS.jazzcash.account} ({PAYMENT_METHODS.jazzcash.name})</span>
-            </div>
-            <div className="flex flex-col sm:flex-row sm:justify-between py-1">
-              <span className="text-gray-500">{PAYMENT_METHODS.bank.title}:</span>
-              <span className="text-white font-bold">{PAYMENT_METHODS.bank.account}</span>
-            </div>
+            <p className="text-[11px] text-gray-400 border-t border-white/5 pt-2">
+              Note: After sending 100 PKR, attach the payment screenshot below to confirm your team registration.
+            </p>
           </div>
         </div>
       </div>

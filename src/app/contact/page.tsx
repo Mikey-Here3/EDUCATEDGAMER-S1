@@ -155,14 +155,21 @@ export default function ContactPage() {
               </ul>
             </div>
 
-            <div className="pt-4">
+            <div className="pt-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
               <Link 
                 href={SOCIAL_LINKS.whatsapp} 
                 target="_blank"
-                className="w-full flex items-center justify-center gap-2 bg-[#25D366] hover:bg-[#20ba59] text-black font-black uppercase text-xs tracking-widest py-3.5 rounded-xl shadow-[0_0_20px_rgba(37,211,102,0.3)] transition-all"
+                className="flex items-center justify-center gap-2 bg-[#25D366] hover:bg-[#20ba59] text-black font-black uppercase text-xs tracking-widest py-3.5 rounded-xl shadow-[0_0_20px_rgba(37,211,102,0.3)] transition-all text-center"
               >
                 <MessageCircle className="w-4 h-4" />
-                Open WhatsApp Community Lobbies
+                WhatsApp Lobbies
+              </Link>
+              <Link 
+                href={SOCIAL_LINKS.contributionWhatsapp} 
+                target="_blank"
+                className="flex items-center justify-center gap-2 bg-gradient-to-r from-red-600 to-red-700 hover:from-red-500 hover:to-red-600 text-white font-black uppercase text-xs tracking-widest py-3.5 rounded-xl shadow-[0_0_20px_rgba(220,38,38,0.3)] transition-all text-center"
+              >
+                Contribute / Sponsor ({SOCIAL_LINKS.contributionNumber})
               </Link>
             </div>
           </div>

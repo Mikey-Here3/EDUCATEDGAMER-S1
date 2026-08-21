@@ -19,6 +19,8 @@ export const NAV_LINKS = [
 
 export const SOCIAL_LINKS = {
   whatsapp: 'https://chat.whatsapp.com/IS43tYX1KOE6Xe4AgJ2dwt',
+  contributionWhatsapp: 'https://wa.me/923190799711?text=Hi%2C%20main%20Educated%20Gamer%20tournament%20mein%20contribute%20karna%20chahta%20hoon',
+  contributionNumber: '03190799711',
   discord: 'https://discord.gg/bE2Cta8q',
   youtube: 'https://youtube.com/@educatedgamer3',
   tiktok: 'https://tiktok.com/@educatedgamer3',
@@ -34,9 +36,11 @@ export const TOURNAMENT_MAPS = [
 ] as const;
 
 export const PAYMENT_METHODS = {
-  easypaisa: { title: 'EasyPaisa', account: '0300 1234567', name: 'Educated Gamer' },
-  jazzcash: { title: 'JazzCash', account: '0315 7654321', name: 'Educated Gamer' },
-  bank: { title: 'Bank Transfer', account: 'Alfalah Bank (Acct: 908123-1)', name: 'Educated Gamer Official' },
+  jazzcash: { 
+    title: 'JazzCash (Only)', 
+    account: '03137076789', 
+    name: 'Akash Akhtar' 
+  },
   fee: '100 PKR',
 } as const;
 

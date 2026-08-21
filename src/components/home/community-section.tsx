@@ -1,6 +1,6 @@
 'use client';
 import { motion } from 'framer-motion';
-import { MessageCircle, MessageSquare, PlaySquare, Users } from 'lucide-react';
+import { MessageCircle, MessageSquare, PlaySquare, Users, HeartHandshake } from 'lucide-react';
 import Link from 'next/link';
 import { SOCIAL_LINKS } from '@/lib/constants';
 
@@ -54,8 +54,8 @@ export default function CommunitySection() {
 
   return (
     <section id="community" className="py-24 px-4 relative z-20 bg-black/40 border-t border-white/5">
-      <div className="max-w-6xl mx-auto">
-        <motion.div initial={{ opacity:0, y:30 }} whileInView={{ opacity:1, y:0 }} viewport={{ once:true }} className="text-center space-y-3 mb-16">
+      <div className="max-w-6xl mx-auto space-y-12">
+        <motion.div initial={{ opacity:0, y:30 }} whileInView={{ opacity:1, y:0 }} viewport={{ once:true }} className="text-center space-y-3">
           <h2 className="text-4xl md:text-6xl font-black italic tracking-tighter uppercase text-white font-heading">
             Join the <span className="text-[#DC2626]">Community</span>
           </h2>
@@ -90,6 +90,40 @@ export default function CommunitySection() {
             </motion.div>
           ))}
         </div>
+
+        {/* Contribution & Sponsorship Banner */}
+        <motion.div 
+          initial={{ opacity:0, y:20 }} 
+          whileInView={{ opacity:1, y:0 }} 
+          viewport={{ once:true }}
+          className="bg-gradient-to-r from-red-950/40 via-[#0a0a0f] to-red-950/40 border border-[#DC2626]/30 rounded-2xl p-6 sm:p-8 flex flex-col md:flex-row items-center justify-between gap-6 shadow-2xl"
+        >
+          <div className="flex items-center gap-5 text-center md:text-left">
+            <div className="w-16 h-16 rounded-2xl bg-[#DC2626]/10 border border-[#DC2626]/30 flex items-center justify-center flex-shrink-0 text-[#DC2626] mx-auto md:mx-0 shadow-[0_0_20px_rgba(220,38,38,0.2)]">
+              <HeartHandshake className="w-8 h-8" />
+            </div>
+            <div>
+              <span className="text-[10px] font-black uppercase tracking-widest text-[#DC2626] bg-[#DC2626]/10 px-2.5 py-0.5 rounded-full border border-[#DC2626]/20">
+                Support & Sponsor Tournament
+              </span>
+              <h3 className="text-xl sm:text-2xl font-black text-white italic uppercase tracking-wide mt-1 font-heading">
+                Want to Contribute to Prize Pool?
+              </h3>
+              <p className="text-xs sm:text-sm text-gray-400 mt-1">
+                Help us boost the reward for players and empower grassroots Free Fire esports in Pakistan.
+              </p>
+            </div>
+          </div>
+
+          <Link
+            href={SOCIAL_LINKS.contributionWhatsapp}
+            target="_blank"
+            className="flex-shrink-0 flex items-center gap-2.5 bg-[#25D366] hover:bg-[#20ba59] text-black font-black uppercase text-xs sm:text-sm tracking-widest px-6 py-4 rounded-xl shadow-[0_0_25px_rgba(37,211,102,0.3)] transition-all hover:scale-105"
+          >
+            <MessageCircle className="w-5 h-5" />
+            Contribute on WhatsApp ({SOCIAL_LINKS.contributionNumber})
+          </Link>
+        </motion.div>
       </div>
     </section>
   );
