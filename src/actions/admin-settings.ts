@@ -10,20 +10,29 @@ export async function updateTournament(data: {
   registration_open?: boolean
   map?: string
   game_mode?: string
+  date?: string | null
+  time?: string | null
+  registration_deadline?: string | null
+  custom_room_info?: string | null
+  announcement?: string | null
 }) {
   try {
     await sql`
       UPDATE tournaments
-      SET 
-        max_teams = COALESCE(${data.max_teams}, max_teams),
-        prize_pool = COALESCE(${data.prize_pool}, prize_pool),
-        status = COALESCE(${data.status}, status),
-        registration_open = COALESCE(${data.registration_open}, registration_open),
-        map = COALESCE(${data.map}, map),
-        game_mode = COALESCE(${data.game_mode}, game_mode),
+      SET
+        max_teams = COALESCE(${data.max_teams ?? null}, max_teams),
+        prize_pool = COALESCE(${data.prize_pool ?? null}, prize_pool),
+        status = COALESCE(${data.status ?? null}, status),
+        registration_open = COALESCE(${data.registration_open ?? null}, registration_open),
+        map = COALESCE(${data.map ?? null}, map),
+        game_mode = COALESCE(${data.game_mode ?? null}, game_mode),
+        date = ${data.date ?? null},
+        time = ${data.time ?? null},
+        registration_deadline = ${data.registration_deadline ?? null},
         updated_at = NOW();
     `
     revalidatePath('/')
+    revalidatePath('/register')
     revalidatePath('/admin/settings')
     return { success: true }
   } catch (error: any) {

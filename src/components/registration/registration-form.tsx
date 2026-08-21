@@ -97,9 +97,11 @@ export function RegistrationForm({ tournamentId, registeredCount, maxTeams }: { 
     const file = e.target.files?.[0]
     if (!file) return
 
-    const MAX_SIZE = 2 * 1024 * 1024 // 2MB
+    // Logo max 2MB, proof screenshots max 5MB
+    const MAX_SIZE = type === 'logo' ? 2 * 1024 * 1024 : 5 * 1024 * 1024
+    const limitLabel = type === 'logo' ? '2MB' : '5MB'
     if (file.size > MAX_SIZE) {
-      setError('File size exceeds the 2MB limit. Please upload a smaller image.')
+      setError(`Image too large! Max allowed size is ${limitLabel}. Please compress your image and try again.`)
       return
     }
 
@@ -247,10 +249,27 @@ export function RegistrationForm({ tournamentId, registeredCount, maxTeams }: { 
         </button>
       </div>
 
+      {/* Centered Error Overlay Dialog */}
       {error && (
-        <div className="bg-red-500/10 border border-red-500/50 text-red-400 p-4 rounded-xl text-sm font-bold flex items-center gap-3">
-          <ShieldAlert className="w-5 h-5 flex-shrink-0" />
-          <span>{error}</span>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={() => setError('')}>
+          <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" />
+          <div 
+            className="relative bg-[#0a0a0f] border border-red-500/50 rounded-2xl p-8 max-w-md w-full shadow-[0_0_60px_rgba(220,38,38,0.3)] text-center space-y-4"
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="w-16 h-16 bg-red-500/10 border border-red-500/30 rounded-2xl flex items-center justify-center mx-auto">
+              <ShieldAlert className="w-8 h-8 text-red-500" />
+            </div>
+            <h3 className="text-xl font-black text-white uppercase tracking-wide">Registration Error</h3>
+            <p className="text-red-400 text-sm font-medium leading-relaxed">{error}</p>
+            <button
+              type="button"
+              onClick={() => setError('')}
+              className="mt-2 bg-red-600 hover:bg-red-700 text-white font-black text-xs uppercase tracking-widest px-8 py-3 rounded-xl transition-colors cursor-pointer"
+            >
+              OK, Fix It
+            </button>
+          </div>
         </div>
       )}
 

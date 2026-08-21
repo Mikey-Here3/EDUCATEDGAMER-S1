@@ -6,7 +6,7 @@ import { Users, User, Globe, Gamepad2, Key, Radio } from 'lucide-react';
 export default function TournamentStats({ tournament }: { tournament: any }) {
   const stats = [
     { icon: Users, value: tournament?.max_teams || 12, label: 'TEAMS' },
-    { icon: User, value: tournament?.team_size || 4, label: 'PLAYERS PER TEAM' },
+    { icon: User, value: '4+3', label: 'PLAYERS (MAX 7)' },
     { icon: Globe, value: 'ONLINE', label: 'TOURNAMENT' },
     { icon: Gamepad2, value: 'FREE FIRE', label: 'GAME' },
     { icon: Key, value: 'CUSTOM', label: 'ROOM' },

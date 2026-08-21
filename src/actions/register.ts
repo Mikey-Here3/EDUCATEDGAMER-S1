@@ -30,12 +30,12 @@ export async function registerTeam(formData: any): Promise<RegistrationResult> {
       return { success: false, error: 'A team with this name is already registered.' }
     }
 
-    // Get current count
-    const countRes = await sql`
-      SELECT COUNT(*)::int as count FROM teams WHERE status != 'rejected' AND status != 'cancelled';
+    // Generate collision-safe team code using max existing sequence
+    const maxCodeRes = await sql`
+      SELECT COALESCE(MAX(CAST(SUBSTRING(team_code, 4) AS INT)), 0) AS max_num FROM teams;
     `
-    const teamNum = (countRes[0]?.count || 0) + 1
-    const teamCode = `EG-${teamNum.toString().padStart(3, '0')}`
+    const nextNum = (maxCodeRes[0]?.max_num || 0) + 1
+    const teamCode = `EG-${nextNum.toString().padStart(3, '0')}`
 
     // 1. Insert team into Neon
     const insertedTeam = await sql`
