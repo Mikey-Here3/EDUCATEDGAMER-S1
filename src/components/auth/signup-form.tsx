@@ -62,15 +62,10 @@ export function SignUpForm() {
       })
 
       if (res.success) {
-        if (res.needsEmailConfirmation) {
-          setNeedsConfirmation(true)
-          setSuccessMessage('Account created! Please check your email inbox to confirm your registration.')
-        } else {
-          setSuccessMessage('Account created successfully! Redirecting to tournament registration...')
-          setTimeout(() => {
-            router.push('/register')
-          }, 1500)
-        }
+        setSuccessMessage('Account created successfully! Redirecting to tournament registration...')
+        setTimeout(() => {
+          router.push('/register')
+        }, 1500)
       } else {
         setErrorMessage(res.error || 'Failed to create account. Please try again.')
       }

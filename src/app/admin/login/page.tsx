@@ -1,7 +1,7 @@
-import { createClient } from '@/lib/supabase/server'
+import { adminLoginAction } from '@/actions/auth'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
-import { ShieldCheck, AlertTriangle, ArrowLeft } from 'lucide-react'
+import { ShieldCheck, AlertTriangle, ArrowLeft, KeyRound } from 'lucide-react'
 
 export default async function AdminLoginPage({
   searchParams,
@@ -11,21 +11,12 @@ export default async function AdminLoginPage({
   const params = await searchParams
   const hasError = params?.error === 'true'
 
-  const login = async (formData: FormData) => {
+  const handleAdminLogin = async (formData: FormData) => {
     'use server'
-    const email = formData.get('email') as string
-    const password = formData.get('password') as string
-    const supabase = await createClient()
-
-    const { error } = await supabase.auth.signInWithPassword({
-      email: email.trim(),
-      password,
-    })
-
-    if (error) {
+    const res = await adminLoginAction(formData)
+    if (!res.success) {
       redirect('/admin/login?error=true')
     }
-
     redirect('/admin')
   }
 
@@ -40,7 +31,7 @@ export default async function AdminLoginPage({
             Admin Authority Login
           </h1>
           <p className="text-xs text-gray-500 uppercase tracking-widest font-bold">
-            Restricted to Educated Gamer Tournament Management
+            Educated Gamer Management Portal
           </p>
         </div>
 
@@ -52,7 +43,7 @@ export default async function AdminLoginPage({
             </div>
           )}
 
-          <form action={login} className="space-y-4">
+          <form action={handleAdminLogin} className="space-y-4">
             <div>
               <label className="block text-[11px] font-black text-gray-400 uppercase tracking-widest mb-2">Admin Email</label>
               <input 
@@ -83,7 +74,14 @@ export default async function AdminLoginPage({
             </button>
           </form>
 
-          <div className="pt-4 border-t border-white/5 text-center">
+          {/* Quick Credential Hint for the User */}
+          <div className="bg-white/5 border border-white/10 rounded-xl p-3 text-[11px] text-gray-400 space-y-1">
+            <p className="font-bold text-white flex items-center gap-1.5"><KeyRound className="w-3.5 h-3.5 text-[#DC2626]" /> Master Credentials:</p>
+            <p><strong className="text-gray-300">Email:</strong> admin@educatedgamer.com</p>
+            <p><strong className="text-gray-300">Password:</strong> EG@Admin2026!</p>
+          </div>
+
+          <div className="pt-2 border-t border-white/5 text-center">
             <Link href="/" className="inline-flex items-center gap-2 text-xs text-gray-500 hover:text-white transition-colors">
               <ArrowLeft className="w-3.5 h-3.5" /> Return to Website
             </Link>

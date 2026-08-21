@@ -1,55 +1,114 @@
 'use server'
 
-import { createClient } from '@/lib/supabase/server'
+import { sql } from '@/lib/db'
 import { revalidatePath } from 'next/cache'
-import { headers } from 'next/headers'
+import { headers, cookies } from 'next/headers'
 
-export async function getGoogleAuthUrl(nextUrl: string = '/') {
+const GOOGLE_CLIENT_ID = process.env.AUTH_GOOGLE_ID || ''
+const GOOGLE_CLIENT_SECRET = process.env.AUTH_GOOGLE_SECRET || ''
+
+// Master Admin Credentials
+const ADMIN_EMAILS = ['admin@educatedgamer.com', 'ashanmirofficial@gmail.com']
+const ADMIN_PASSWORDS = ['EG@Admin2026!', 'EG@Admin2024!', 'admin123']
+
+export async function getGoogleAuthUrl(nextUrl: string = '/register') {
   try {
-    const supabase = await createClient()
     const headerList = await headers()
     const host = headerList.get('host') || 'localhost:3000'
     const protocol = host.includes('localhost') ? 'http' : 'https'
     const origin = `${protocol}://${host}`
     
-    const redirectTo = `${origin}/auth/callback?next=${encodeURIComponent(nextUrl)}`
+    const redirectUri = `${origin}/auth/callback`
 
-    const { data, error } = await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: {
-        redirectTo,
-        queryParams: {
-          access_type: 'offline',
-          prompt: 'consent',
-        },
-      },
+    const params = new URLSearchParams({
+      client_id: GOOGLE_CLIENT_ID,
+      redirect_uri: redirectUri,
+      response_type: 'code',
+      scope: 'openid email profile',
+      access_type: 'offline',
+      prompt: 'consent',
+      state: nextUrl,
     })
 
-    if (error) {
-      return { success: false, error: error.message }
-    }
+    const googleAuthUrl = `https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`
 
-    return { success: true, url: data.url }
+    return { success: true, url: googleAuthUrl }
   } catch (err: any) {
     return { success: false, error: err.message }
   }
 }
 
+export async function adminLoginAction(formData: FormData) {
+  const email = (formData.get('email') as string)?.trim().toLowerCase()
+  const password = formData.get('password') as string
+
+  if (!email || !password) {
+    return { success: false, error: 'Please enter both email and password.' }
+  }
+
+  // Check master admin credentials or Neon database
+  const isValidMaster = ADMIN_EMAILS.includes(email) && ADMIN_PASSWORDS.includes(password)
+
+  if (isValidMaster) {
+    const cookieStore = await cookies()
+    cookieStore.set('eg_admin_session', JSON.stringify({ email, role: 'admin', loggedAt: Date.now() }), {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 60 * 60 * 24 * 7, // 7 days
+      path: '/',
+    })
+    return { success: true }
+  }
+
+  // Check in Neon users table
+  try {
+    const users = await sql`
+      SELECT * FROM users WHERE LOWER(email) = LOWER(${email}) AND role = 'admin' LIMIT 1;
+    `
+    if (users.length > 0 && users[0].password_hash === password) {
+      const cookieStore = await cookies()
+      cookieStore.set('eg_admin_session', JSON.stringify({ email, role: 'admin', loggedAt: Date.now() }), {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        maxAge: 60 * 60 * 24 * 7,
+        path: '/',
+      })
+      return { success: true }
+    }
+  } catch (err) {
+    console.error('Neon admin check error:', err)
+  }
+
+  return { success: false, error: 'Invalid admin credentials. Please verify your email and password.' }
+}
+
+export async function adminLogoutAction() {
+  const cookieStore = await cookies()
+  cookieStore.delete('eg_admin_session')
+  revalidatePath('/')
+  return { success: true }
+}
+
 export async function signInWithEmailAction(formData: { email: string; password: string }) {
   try {
-    const supabase = await createClient()
-    
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email: formData.email.trim(),
-      password: formData.password,
-    })
-
-    if (error) {
-      return { success: false, error: error.message }
+    const email = formData.email.trim().toLowerCase()
+    const users = await sql`
+      SELECT * FROM users WHERE LOWER(email) = LOWER(${email}) LIMIT 1;
+    `
+    if (users.length > 0 && users[0].password_hash === formData.password) {
+      const cookieStore = await cookies()
+      cookieStore.set('eg_user_session', JSON.stringify({ email, name: users[0].full_name }), {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        maxAge: 60 * 60 * 24 * 7,
+        path: '/',
+      })
+      return { success: true, user: users[0] }
     }
-
-    revalidatePath('/')
-    return { success: true, user: data.user }
+    return { success: false, error: 'Invalid email or password.' }
   } catch (err: any) {
     return { success: false, error: err.message }
   }
@@ -62,44 +121,30 @@ export async function signUpWithEmailAction(formData: {
   freeFireUid?: string;
 }) {
   try {
-    const supabase = await createClient()
-    const headerList = await headers()
-    const host = headerList.get('host') || 'localhost:3000'
-    const protocol = host.includes('localhost') ? 'http' : 'https'
-    const origin = `${protocol}://${host}`
+    const email = formData.email.trim().toLowerCase()
+    
+    // Check if user already exists in Neon
+    const existing = await sql`SELECT id FROM users WHERE LOWER(email) = LOWER(${email}) LIMIT 1;`
+    if (existing.length > 0) {
+      return { success: false, error: 'An account with this email already exists.' }
+    }
 
-    const { data, error } = await supabase.auth.signUp({
-      email: formData.email.trim(),
-      password: formData.password,
-      options: {
-        emailRedirectTo: `${origin}/auth/callback`,
-        data: {
-          full_name: formData.fullName,
-          free_fire_uid: formData.freeFireUid || '',
-        }
-      }
+    const inserted = await sql`
+      INSERT INTO users (email, password_hash, full_name, role)
+      VALUES (${email}, ${formData.password}, ${formData.fullName}, 'player')
+      RETURNING id, email, full_name;
+    `
+
+    const cookieStore = await cookies()
+    cookieStore.set('eg_user_session', JSON.stringify({ email, name: formData.fullName }), {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 60 * 60 * 24 * 7,
+      path: '/',
     })
 
-    if (error) {
-      return { success: false, error: error.message }
-    }
-
-    return { 
-      success: true, 
-      user: data.user, 
-      needsEmailConfirmation: !data.session 
-    }
-  } catch (err: any) {
-    return { success: false, error: err.message }
-  }
-}
-
-export async function signOutAction() {
-  try {
-    const supabase = await createClient()
-    await supabase.auth.signOut()
-    revalidatePath('/')
-    return { success: true }
+    return { success: true, user: inserted[0] }
   } catch (err: any) {
     return { success: false, error: err.message }
   }
