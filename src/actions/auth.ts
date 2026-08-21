@@ -4,7 +4,7 @@ import { sql } from '@/lib/db'
 import { revalidatePath } from 'next/cache'
 import { headers, cookies } from 'next/headers'
 
-const GOOGLE_CLIENT_ID = process.env.AUTH_GOOGLE_ID || ''
+const GOOGLE_CLIENT_ID = (process.env.AUTH_GOOGLE_ID || process.env.NEXT_PUBLIC_AUTH_GOOGLE_ID || '').trim()
 
 // Master Admin Credentials
 const ADMIN_EMAILS = ['admin@educatedgamer.com', 'ashanmirofficial@gmail.com']
@@ -12,26 +12,17 @@ const ADMIN_PASSWORDS = ['EG@Admin2026!', 'EG@Admin2024!', 'admin123']
 
 // IMPORTANT: This redirect URI must EXACTLY match what you entered in Google Cloud Console
 function getRedirectUri(origin: string) {
-  // On production Vercel, use the canonical site URL to avoid mismatches
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, '') 
-  if (siteUrl && !origin.includes('localhost')) {
-    return `${siteUrl}/auth/callback`
+  if (origin && origin.startsWith('http')) {
+    return `${origin.replace(/\/$/, '')}/auth/callback`
   }
-  return `${origin}/auth/callback`
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, '') || 'https://educatedgamers-s1.vercel.app'
+  return `${siteUrl}/auth/callback`
 }
 
 export async function getGoogleAuthUrl(nextUrl: string = '/register') {
   try {
-    if (!GOOGLE_CLIENT_ID) {
-      return { 
-        success: false, 
-        error: 'AUTH_GOOGLE_ID environment variable is missing on Vercel. Please add it in Vercel Settings and redeploy.' 
-      }
-    }
-    console.log("GOOGLE_CLIENT_ID on server starts with:", GOOGLE_CLIENT_ID.slice(0, 15))
-
     const headerList = await headers()
-    const host = headerList.get('host') || 'localhost:3000'
+    const host = headerList.get('host') || 'educatedgamers-s1.vercel.app'
     const protocol = host.includes('localhost') ? 'http' : 'https'
     const origin = `${protocol}://${host}`
     

@@ -2,16 +2,16 @@ import { NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
 import { sql } from '@/lib/db'
 
-const GOOGLE_CLIENT_ID = process.env.AUTH_GOOGLE_ID || ''
-const GOOGLE_CLIENT_SECRET = process.env.AUTH_GOOGLE_SECRET || ''
+const GOOGLE_CLIENT_ID = (process.env.AUTH_GOOGLE_ID || process.env.NEXT_PUBLIC_AUTH_GOOGLE_ID || '').trim()
+const GOOGLE_CLIENT_SECRET = (process.env.AUTH_GOOGLE_SECRET || '').trim()
 
 // MUST exactly match what is registered in Google Cloud Console
 function getRedirectUri(origin: string): string {
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, '')
-  if (siteUrl && !origin.includes('localhost')) {
-    return `${siteUrl}/auth/callback`
+  if (origin && origin.startsWith('http')) {
+    return `${origin.replace(/\/$/, '')}/auth/callback`
   }
-  return `${origin}/auth/callback`
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, '') || 'https://educatedgamers-s1.vercel.app'
+  return `${siteUrl}/auth/callback`
 }
 
 export async function GET(request: Request) {
