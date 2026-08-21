@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useTransition } from 'react'
+import { useState, useEffect, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { LogIn, Users, Plus, Trash2, DollarSign, Upload, ShieldAlert, Image as ImageIcon, Sparkles } from 'lucide-react'
 import { registerTeam } from '@/actions/register'
@@ -25,7 +25,8 @@ export function RegistrationForm({ tournamentId, registeredCount, maxTeams }: { 
   const [captainEmail, setCaptainEmail] = useState('')
   const [captainWhatsapp, setCaptainWhatsapp] = useState('')
 
-  // Autofill from Google OAuth redirect
+  // Google Verified Profile state
+  const [googleProfile, setGoogleProfile] = useState<{ email: string; name: string; picture?: string } | null>(null)
   const [isGoogleLoading, setIsGoogleLoading] = useState(false)
   
   const handleGoogleSignIn = async () => {
@@ -45,15 +46,25 @@ export function RegistrationForm({ tournamentId, registeredCount, maxTeams }: { 
     }
   }
 
-  useState(() => {
+  useEffect(() => {
     if (typeof window !== 'undefined') {
       const params = new URLSearchParams(window.location.search)
       const emailParam = params.get('email')
       const nameParam = params.get('name')
-      if (emailParam) setCaptainEmail(emailParam)
-      if (nameParam) setCaptainName(nameParam)
+      const pictureParam = params.get('picture')
+
+      if (emailParam || nameParam) {
+        if (emailParam) setCaptainEmail(emailParam)
+        if (nameParam) setCaptainName(nameParam)
+
+        setGoogleProfile({
+          email: emailParam || '',
+          name: nameParam || '',
+          picture: pictureParam || '',
+        })
+      }
     }
-  })
+  }, [])
 
   // Roster (Initial 3 members + Captain = 4 minimum; up to 6 members = 7 total)
   const [roster, setRoster] = useState<PlayerRow[]>([
@@ -228,26 +239,56 @@ export function RegistrationForm({ tournamentId, registeredCount, maxTeams }: { 
 
   return (
     <form onSubmit={handleSubmit} className="space-y-8 max-w-4xl mx-auto pb-16">
-      {/* Top Banner: Faster with Google */}
-      <div className="bg-[#0a0a0f] border border-white/10 rounded-2xl p-5 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-xl">
-        <div className="flex items-center gap-4">
-          <div className="w-12 h-12 rounded-xl bg-[#DC2626]/10 border border-[#DC2626]/30 flex items-center justify-center text-[#DC2626] flex-shrink-0">
-            <LogIn className="w-6 h-6" />
+      {/* Top Banner: Google Authentication & Profile Sync */}
+      {googleProfile ? (
+        <div className="bg-emerald-950/40 border border-emerald-500/40 rounded-2xl p-5 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-[0_0_30px_rgba(16,185,129,0.15)]">
+          <div className="flex items-center gap-4">
+            {googleProfile.picture ? (
+              <img 
+                src={googleProfile.picture} 
+                alt="Google Avatar" 
+                className="w-12 h-12 rounded-xl object-cover border-2 border-emerald-500/50 shadow-md"
+              />
+            ) : (
+              <div className="w-12 h-12 rounded-xl bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-emerald-400 font-bold text-lg">
+                {googleProfile.name.slice(0, 1).toUpperCase()}
+              </div>
+            )}
+            <div>
+              <div className="flex items-center gap-2">
+                <h4 className="font-black text-white text-base">{googleProfile.name}</h4>
+                <span className="bg-emerald-500/20 text-emerald-400 text-[10px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded-full border border-emerald-500/30">
+                  ✓ Google Verified
+                </span>
+              </div>
+              <p className="text-gray-300 text-xs mt-0.5 font-mono">{googleProfile.email}</p>
+            </div>
           </div>
-          <div>
-            <h4 className="font-black text-white text-base">Register faster with Google</h4>
-            <p className="text-gray-400 text-xs mt-0.5">Log in to auto-fill captain email details and sync match notifications.</p>
+          <div className="text-xs text-emerald-400 font-bold uppercase tracking-wider bg-emerald-500/10 px-4 py-2.5 rounded-xl border border-emerald-500/20">
+            Profile Auto-filled
           </div>
         </div>
-        <button 
-          type="button"
-          disabled={isGoogleLoading}
-          onClick={handleGoogleSignIn}
-          className="flex-shrink-0 bg-gradient-to-r from-red-600 to-red-700 hover:from-red-500 hover:to-red-600 text-white font-bold text-xs uppercase tracking-wider px-5 py-3 rounded-xl shadow-[0_0_20px_rgba(220,38,38,0.3)] transition-all disabled:opacity-50 cursor-pointer"
-        >
-          {isGoogleLoading ? 'Connecting...' : 'Sign In with Google'}
-        </button>
-      </div>
+      ) : (
+        <div className="bg-[#0a0a0f] border border-white/10 rounded-2xl p-5 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-xl">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 rounded-xl bg-[#DC2626]/10 border border-[#DC2626]/30 flex items-center justify-center text-[#DC2626] flex-shrink-0">
+              <LogIn className="w-6 h-6" />
+            </div>
+            <div>
+              <h4 className="font-black text-white text-base">Register faster with Google</h4>
+              <p className="text-gray-400 text-xs mt-0.5">Log in to auto-fill captain email details and sync match notifications.</p>
+            </div>
+          </div>
+          <button 
+            type="button"
+            disabled={isGoogleLoading}
+            onClick={handleGoogleSignIn}
+            className="flex-shrink-0 bg-gradient-to-r from-red-600 to-red-700 hover:from-red-500 hover:to-red-600 text-white font-bold text-xs uppercase tracking-wider px-5 py-3 rounded-xl shadow-[0_0_20px_rgba(220,38,38,0.3)] transition-all disabled:opacity-50 cursor-pointer"
+          >
+            {isGoogleLoading ? 'Connecting...' : 'Sign In with Google'}
+          </button>
+        </div>
+      )}
 
       {/* Centered Error Overlay Dialog */}
       {error && (

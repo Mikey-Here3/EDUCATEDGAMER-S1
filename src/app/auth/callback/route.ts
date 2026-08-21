@@ -91,7 +91,11 @@ export async function GET(request: Request) {
       ? (process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, '') || origin) + next
       : origin + '/' + next
     
-    const autofillParams = new URLSearchParams({ email, name })
+    const autofillParams = new URLSearchParams({ 
+      email, 
+      name,
+      picture: googleUser.picture || '' 
+    })
     const finalRedirect = redirectBase.includes('?')
       ? `${redirectBase}&${autofillParams}`
       : `${redirectBase}?${autofillParams}`
