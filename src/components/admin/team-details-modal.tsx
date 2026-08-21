@@ -1,5 +1,7 @@
 'use client'
 
+import { useState, useTransition } from 'react'
+import { useRouter } from 'next/navigation'
 import {
   Dialog,
   DialogContent,
@@ -8,7 +10,8 @@ import {
   DialogDescription,
 } from '@/components/ui/dialog'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import { Crown, User, ShieldAlert, Phone, Mail } from 'lucide-react'
+import { updateTeamStatus } from '@/actions/admin-teams'
+import { Crown, Phone, Check, X, ShieldAlert } from 'lucide-react'
 
 type TeamDetailsModalProps = {
   team: any
@@ -17,10 +20,27 @@ type TeamDetailsModalProps = {
 }
 
 export default function TeamDetailsModal({ team, isOpen, onClose }: TeamDetailsModalProps) {
+  const router = useRouter()
+  const [isPending, startTransition] = useTransition()
+  const [error, setError] = useState('')
+
   if (!team) return null
 
   const playersList = team.players || team.team_players || []
   const teamInitials = team.team_name ? team.team_name.slice(0, 2).toUpperCase() : 'EG'
+
+  const handleStatusChange = (status: 'approved' | 'rejected') => {
+    setError('')
+    startTransition(async () => {
+      const res = await updateTeamStatus(team.id, status)
+      if (res.success) {
+        router.refresh()
+        onClose()
+      } else {
+        setError(res.error || 'Failed to update team status.')
+      }
+    })
+  }
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -29,7 +49,7 @@ export default function TeamDetailsModal({ team, isOpen, onClose }: TeamDetailsM
           <div className="flex items-center gap-4">
             <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-red-600/30 to-black border border-white/10 flex items-center justify-center overflow-hidden flex-shrink-0">
               {team.logo_url ? (
-                <img src={team.logo_url} alt="Logo" className="w-full h-full object-cover" />
+                <img src={team.logo_url} alt="Logo" className="w-full h-full object-cover aspect-square" />
               ) : (
                 <span className="font-black text-white text-base font-mono">{teamInitials}</span>
               )}
@@ -45,8 +65,15 @@ export default function TeamDetailsModal({ team, isOpen, onClose }: TeamDetailsM
           </div>
         </DialogHeader>
 
+        {error && (
+          <div className="bg-red-500/10 border border-red-500/30 p-3 rounded-xl text-red-400 text-xs font-bold flex items-center gap-2">
+            <ShieldAlert className="w-4 h-4" />
+            <span>{error}</span>
+          </div>
+        )}
+
         {/* Contact & Status Details */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 py-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 py-2">
           <div className="bg-black/50 border border-white/5 rounded-xl p-4 space-y-2 text-xs">
             <h4 className="font-bold text-gray-400 uppercase tracking-wider text-[11px] mb-2 flex items-center gap-1.5">
               <Phone className="w-3.5 h-3.5 text-[#DC2626]" /> Contact Details
@@ -55,15 +82,37 @@ export default function TeamDetailsModal({ team, isOpen, onClose }: TeamDetailsM
             <p className="text-white"><strong className="text-gray-400">Email/Discord:</strong> {team.discord || team.discord_id || 'N/A'}</p>
           </div>
 
-          <div className="bg-black/50 border border-white/5 rounded-xl p-4 space-y-2 text-xs">
-            <h4 className="font-bold text-gray-400 uppercase tracking-wider text-[11px] mb-2">Review Status</h4>
-            <span className={`inline-block px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider ${
-              team.status === 'approved' ? 'bg-green-500/20 text-green-400 border border-green-500/30' :
-              team.status === 'rejected' ? 'bg-red-500/20 text-red-400 border border-red-500/30' :
-              'bg-yellow-500/20 text-yellow-400 border border-yellow-500/30'
-            }`}>
-              {team.status || 'pending'}
-            </span>
+          <div className="bg-black/50 border border-white/5 rounded-xl p-4 flex flex-col justify-between text-xs">
+            <div>
+              <h4 className="font-bold text-gray-400 uppercase tracking-wider text-[11px] mb-2">Review Status</h4>
+              <span className={`inline-block px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider ${
+                team.status === 'approved' ? 'bg-green-500/20 text-green-400 border border-green-500/30' :
+                team.status === 'rejected' ? 'bg-red-500/20 text-red-400 border border-red-500/30' :
+                'bg-yellow-500/20 text-yellow-400 border border-yellow-500/30'
+              }`}>
+                {team.status || 'pending'}
+              </span>
+            </div>
+
+            {/* Quick Action Buttons inside modal */}
+            {team.status === 'pending' && (
+              <div className="flex gap-2 mt-4">
+                <button
+                  onClick={() => handleStatusChange('approved')}
+                  disabled={isPending}
+                  className="flex-1 bg-green-600 hover:bg-green-700 text-white font-bold text-xs uppercase py-2 px-3 rounded-lg flex items-center justify-center gap-1.5 transition-colors disabled:opacity-50 cursor-pointer"
+                >
+                  <Check className="w-3.5 h-3.5" /> Approve Team
+                </button>
+                <button
+                  onClick={() => handleStatusChange('rejected')}
+                  disabled={isPending}
+                  className="flex-1 bg-red-600 hover:bg-red-700 text-white font-bold text-xs uppercase py-2 px-3 rounded-lg flex items-center justify-center gap-1.5 transition-colors disabled:opacity-50 cursor-pointer"
+                >
+                  <X className="w-3.5 h-3.5" /> Reject Team
+                </button>
+              </div>
+            )}
           </div>
         </div>
 

@@ -74,12 +74,7 @@ export default async function AdminLoginPage({
             </button>
           </form>
 
-          {/* Quick Credential Hint for the User */}
-          <div className="bg-white/5 border border-white/10 rounded-xl p-3 text-[11px] text-gray-400 space-y-1">
-            <p className="font-bold text-white flex items-center gap-1.5"><KeyRound className="w-3.5 h-3.5 text-[#DC2626]" /> Master Credentials:</p>
-            <p><strong className="text-gray-300">Email:</strong> admin@educatedgamer.com</p>
-            <p><strong className="text-gray-300">Password:</strong> EG@Admin2026!</p>
-          </div>
+
 
           <div className="pt-2 border-t border-white/5 text-center">
             <Link href="/" className="inline-flex items-center gap-2 text-xs text-gray-500 hover:text-white transition-colors">

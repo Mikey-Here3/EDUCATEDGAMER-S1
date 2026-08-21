@@ -97,6 +97,12 @@ export function RegistrationForm({ tournamentId, registeredCount, maxTeams }: { 
     const file = e.target.files?.[0]
     if (!file) return
 
+    const MAX_SIZE = 2 * 1024 * 1024 // 2MB
+    if (file.size > MAX_SIZE) {
+      setError('File size exceeds the 2MB limit. Please upload a smaller image.')
+      return
+    }
+
     const formData = new FormData()
     formData.append('file', file)
 
