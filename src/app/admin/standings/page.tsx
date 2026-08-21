@@ -9,14 +9,22 @@ export default async function AdminStandingsPage() {
   let teams: any[] = []
 
   try {
-    const [sRows, kRows, tRows] = await Promise.all([
+    const [sRows, kRows, tRows, pRows] = await Promise.all([
       sql`SELECT * FROM team_standings ORDER BY points DESC;`,
       sql`SELECT * FROM mvp_kills ORDER BY kills DESC;`,
-      sql`SELECT id, team_name FROM teams WHERE status = 'approved';`,
+      sql`SELECT id, team_name, team_code, logo_url, leader_name, leader_uid FROM teams WHERE status != 'rejected' ORDER BY team_name ASC;`,
+      sql`SELECT id, team_id, player_name, free_fire_uid, player_type FROM players ORDER BY player_name ASC;`,
     ])
+
     standings = sRows || []
     kills = kRows || []
-    teams = tRows || []
+
+    const playersList = pRows || []
+
+    teams = (tRows || []).map((t: any) => ({
+      ...t,
+      players: playersList.filter((p: any) => p.team_id === t.id)
+    }))
   } catch (err) {
     console.error('Neon admin standings query error:', err)
   }

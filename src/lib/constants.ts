@@ -9,10 +9,10 @@ export const SITE_CONFIG = {
 
 export const NAV_LINKS = [
   { href: '/#overview', label: 'Overview' },
-  { href: '/#rules', label: 'Rules' },
-  { href: '/#standings', label: 'Standings' },
+  { href: '/standings', label: 'Standings' },
   { href: '/teams', label: 'Teams' },
   { href: '/register', label: 'Register' },
+  { href: '/#rules', label: 'Rules' },
   { href: '/#faq', label: 'FAQ' },
   { href: '/contact', label: 'Contact' },
 ] as const;
