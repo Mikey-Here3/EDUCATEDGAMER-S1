@@ -7,7 +7,7 @@ const DEFAULT_FAQS = [
   { q: 'How do I register my team?', a: 'Click Register in the navigation, fill in your team details, 4 player UIDs, and submit. Confirm payment of 100 Rs entry fee via EasyPaisa/JazzCash after registration.' },
   { q: 'How many teams can participate?', a: 'Only 12 teams are allowed. Teams that register after the 12 slots are filled are placed on the Waiting List automatically.' },
   { q: 'What happens if a team drops out?', a: 'If a confirmed team withdraws, the next team on the Waiting List is automatically promoted and gets to play.' },
-  { q: 'What is the prize for winning?', a: 'The winning team receives 1500 Rs. The player with the Most Kills (MVP) receives an additional 100 Rs.' },
+  { q: 'What is the prize for winning?', a: 'The winning team receives 1000 Rs. The player with the Most Kills (MVP) receives 100 Rs, and an additional 100 Rs is awarded as a Giveaway!' },
   { q: 'How will we receive the prize money?', a: 'Prize distribution is handled immediately after match verification via EasyPaisa, JazzCash, or Bank Transfer.' },
   { q: 'Where do we get the Custom Room ID?', a: 'Room ID and password are shared via our official Discord server 15 minutes before the match starts. Make sure you have joined the Discord.' },
   { q: 'Is emulator or PC play allowed?', a: 'No. Only mobile device players are allowed. PC emulators, hardware triggers, and auto-fire tools are strictly prohibited.' },

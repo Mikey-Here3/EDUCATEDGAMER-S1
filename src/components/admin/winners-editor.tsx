@@ -5,7 +5,7 @@ import { upsertWinner, deleteWinner } from '@/actions/admin-winners';
 
 export default function WinnersEditor({ winners, tournamentId }: any) {
   const [data, setData] = useState(winners);
-  const [form, setForm] = useState({ position: '1st', team_name: '', prize: '1500 Rs' });
+  const [form, setForm] = useState({ position: '1st', team_name: '', prize: '1000 Rs' });
   const [loading, setLoading] = useState(false);
 
   const handleAdd = async () => {
@@ -27,7 +27,7 @@ export default function WinnersEditor({ winners, tournamentId }: any) {
         <h3 className="font-black text-white text-sm uppercase tracking-wider">Add Winner</h3>
         <div className="grid grid-cols-3 gap-3">
           <select value={form.position} onChange={e=>setForm({...form,position:e.target.value})} className="bg-black/50 border border-white/10 rounded-lg px-3 py-2 text-sm text-white">
-            <option>1st</option><option>2nd</option><option>3rd</option><option>MVP</option>
+            <option>1st</option><option>2nd</option><option>3rd</option><option>MVP</option><option>Giveaway</option>
           </select>
           <input value={form.team_name} onChange={e=>setForm({...form,team_name:e.target.value})} placeholder="Team Name" className="bg-black/50 border border-white/10 rounded-lg px-3 py-2 text-sm text-white" />
           <input value={form.prize} onChange={e=>setForm({...form,prize:e.target.value})} placeholder="Prize" className="bg-black/50 border border-white/10 rounded-lg px-3 py-2 text-sm text-white" />

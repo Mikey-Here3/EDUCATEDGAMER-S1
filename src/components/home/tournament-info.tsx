@@ -1,7 +1,7 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { Calendar, Clock, CalendarClock, Crosshair, Map as MapIcon, Info, Trophy, Target, Ticket, ScrollText, Gamepad2 } from 'lucide-react';
+import { Calendar, Clock, CalendarClock, Crosshair, Map as MapIcon, Info, Trophy, Target, Ticket, ScrollText, Gamepad2, Gift } from 'lucide-react';
 import { formatDate, formatTime } from '@/lib/utils';
 import { cn } from '@/lib/utils';
 
@@ -20,8 +20,9 @@ export default function TournamentInfo({ tournament, settings }: { tournament: a
 
   const prizeItems = [
     { icon: Ticket, label: 'Entry Fee', value: '100 Rs', color: 'text-blue-400', bg: 'bg-blue-500/10', border: 'border-blue-500/20' },
-    { icon: Trophy, label: 'Winner Prize', value: '1500 Rs', color: 'text-yellow-400', bg: 'bg-yellow-500/10', border: 'border-yellow-500/20', glow: true },
+    { icon: Trophy, label: 'Winner Prize', value: '1000 Rs', color: 'text-yellow-400', bg: 'bg-yellow-500/10', border: 'border-yellow-500/20', glow: true },
     { icon: Target, label: 'Most Kills (MVP)', value: '100 Rs', color: 'text-red-400', bg: 'bg-red-500/10', border: 'border-red-500/20' },
+    { icon: Gift, label: 'Giveaway Prize', value: '100 Rs', color: 'text-purple-400', bg: 'bg-purple-500/10', border: 'border-purple-500/20' },
   ];
 
   const containerVariants = {

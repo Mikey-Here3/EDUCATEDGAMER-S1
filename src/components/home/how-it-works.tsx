@@ -24,7 +24,7 @@ export default function HowItWorks() {
     {
       icon: Trophy,
       title: "4. Claim Reward",
-      desc: "Win 1500 Rs for 1st Place or get 100 Rs for Most Kills (MVP)!",
+      desc: "Win 1000 Rs for 1st Place, get 100 Rs for Most Kills (MVP), or 100 Rs Giveaway!",
     }
   ];
 
