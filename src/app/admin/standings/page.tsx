@@ -1,17 +1,30 @@
-import { createClient } from '@/lib/supabase/server';
-import { TOURNAMENT_ID } from '@/lib/constants';
-import StandingsEditor from '@/components/admin/standings-editor';
+import { sql } from '@/lib/db'
+import StandingsEditor from '@/components/admin/standings-editor'
+
+export const revalidate = 0
 
 export default async function AdminStandingsPage() {
-  const supabase = await createClient();
-  const { data: standings } = await supabase.from('team_standings').select('*').eq('tournament_id', TOURNAMENT_ID).order('points', { ascending: false });
-  const { data: kills } = await supabase.from('mvp_kills').select('*').eq('tournament_id', TOURNAMENT_ID).order('kills', { ascending: false });
-  const { data: teams } = await supabase.from('teams').select('id, team_name').eq('tournament_id', TOURNAMENT_ID).eq('status', 'approved');
+  let standings: any[] = []
+  let kills: any[] = []
+  let teams: any[] = []
+
+  try {
+    const [sRows, kRows, tRows] = await Promise.all([
+      sql`SELECT * FROM team_standings ORDER BY points DESC;`,
+      sql`SELECT * FROM mvp_kills ORDER BY kills DESC;`,
+      sql`SELECT id, team_name FROM teams WHERE status = 'approved';`,
+    ])
+    standings = sRows || []
+    kills = kRows || []
+    teams = tRows || []
+  } catch (err) {
+    console.error('Neon admin standings query error:', err)
+  }
 
   return (
     <div className="flex flex-col gap-6 p-6 text-white max-w-5xl">
-      <h1 className="text-3xl font-black tracking-tight">Standings & Kills Manager</h1>
-      <StandingsEditor standings={standings || []} kills={kills || []} teams={teams || []} tournamentId={TOURNAMENT_ID} />
+      <h1 className="text-3xl font-black tracking-tight font-heading">Standings & MVP Kills Manager</h1>
+      <StandingsEditor standings={standings} kills={kills} teams={teams} tournamentId="a0000000-0000-0000-0000-000000000001" />
     </div>
-  );
+  )
 }

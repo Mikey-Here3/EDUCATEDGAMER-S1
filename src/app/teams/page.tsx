@@ -1,25 +1,35 @@
+import { sql } from '@/lib/db'
+import { MAX_TEAMS } from '@/lib/constants'
 import Navbar from '@/components/layout/navbar'
 import Footer from '@/components/layout/footer'
 import { PageHeader } from '@/components/shared/page-header'
 import { TeamGrid } from '@/components/teams/team-grid'
-import { createClient } from '@/lib/supabase/server'
-import { TOURNAMENT_ID, MAX_TEAMS } from '@/lib/constants'
+
+export const revalidate = 0
 
 export default async function TeamsPage() {
-  const supabase = await createClient()
+  let teams: any[] = []
+  let maxTeams = MAX_TEAMS
 
-  // Fetch tournament and teams with full players roster
-  const [{ data: tournament }, { data: teams }] = await Promise.all([
-    supabase.from('tournaments').select('*').eq('id', TOURNAMENT_ID).maybeSingle(),
-    supabase.from('teams')
-      .select('*, players(*)')
-      .eq('tournament_id', TOURNAMENT_ID)
-      .neq('status', 'cancelled')
-      .order('created_at', { ascending: true })
-  ])
+  try {
+    const [tRows, teamsRows, playersRows] = await Promise.all([
+      sql`SELECT max_teams FROM tournaments LIMIT 1;`,
+      sql`SELECT * FROM teams WHERE status != 'cancelled' ORDER BY created_at ASC;`,
+      sql`SELECT * FROM players ORDER BY created_at ASC;`
+    ])
 
-  const registeredCount = teams?.length || 0
-  const maxTeams = tournament?.max_teams || MAX_TEAMS
+    maxTeams = tRows[0]?.max_teams || MAX_TEAMS
+
+    // Join players into their respective teams
+    teams = teamsRows.map((team: any) => ({
+      ...team,
+      players: playersRows.filter((p: any) => p.team_id === team.id)
+    }))
+  } catch (err) {
+    console.error('Neon teams query error:', err)
+  }
+
+  const registeredCount = teams.length
 
   return (
     <div className="min-h-screen flex flex-col bg-[#050507] text-white">

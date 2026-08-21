@@ -1,38 +1,32 @@
 'use server'
 
-import { createClient } from '@/lib/supabase/server'
+import { sql } from '@/lib/db'
 import { revalidatePath } from 'next/cache'
 
 export async function updateTeamStatus(teamId: string, status: string) {
-  const supabase = await createClient()
-  
-  const { error } = await supabase
-    .from('teams')
-    .update({ status })
-    .eq('id', teamId)
-    
-  if (error) {
-    console.error('Failed to update team status:', error)
-    throw new Error('Failed to update status')
+  try {
+    await sql`
+      UPDATE teams
+      SET status = ${status}, updated_at = NOW()
+      WHERE id = ${teamId};
+    `
+    revalidatePath('/')
+    revalidatePath('/teams')
+    revalidatePath('/admin/teams')
+    return { success: true }
+  } catch (error: any) {
+    return { success: false, error: error.message }
   }
-  
-  revalidatePath('/admin/teams')
-  revalidatePath('/admin')
 }
 
 export async function deleteTeam(teamId: string) {
-  const supabase = await createClient()
-  
-  const { error } = await supabase
-    .from('teams')
-    .delete()
-    .eq('id', teamId)
-    
-  if (error) {
-    console.error('Failed to delete team:', error)
-    throw new Error('Failed to delete team')
+  try {
+    await sql`DELETE FROM teams WHERE id = ${teamId};`
+    revalidatePath('/')
+    revalidatePath('/teams')
+    revalidatePath('/admin/teams')
+    return { success: true }
+  } catch (error: any) {
+    return { success: false, error: error.message }
   }
-  
-  revalidatePath('/admin/teams')
-  revalidatePath('/admin')
 }

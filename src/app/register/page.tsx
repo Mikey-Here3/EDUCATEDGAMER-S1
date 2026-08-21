@@ -1,29 +1,35 @@
-import { Navbar } from '@/components/layout/navbar'
-import { Footer } from '@/components/layout/footer'
+import Navbar from '@/components/layout/navbar'
+import Footer from '@/components/layout/footer'
 import { RegistrationClosed } from '@/components/registration/registration-closed'
 import { RegistrationForm } from '@/components/registration/registration-form'
-import { createClient } from '@/lib/supabase/server'
-import { TOURNAMENT_ID } from '@/lib/constants'
+import { sql } from '@/lib/db'
+import { MAX_TEAMS } from '@/lib/constants'
+
+export const revalidate = 0
 
 export default async function RegisterPage() {
-  const supabase = await createClient()
+  let tournament: any = null
+  let registeredCount = 0
 
-  // Fetch tournament and registration count
-  const { data: tournament } = await supabase
-    .from('tournaments')
-    .select('*, teams(count)')
-    .eq('id', TOURNAMENT_ID)
-    .single()
-
-  const activeTournament = tournament || {
-    id: TOURNAMENT_ID,
-    max_teams: 12,
-    registration_open: true,
-    teams: [{ count: 0 }]
+  try {
+    const [tRows, cRows] = await Promise.all([
+      sql`SELECT * FROM tournaments LIMIT 1;`,
+      sql`SELECT COUNT(*)::int as count FROM teams WHERE status != 'rejected' AND status != 'cancelled';`
+    ])
+    tournament = tRows[0] || null
+    registeredCount = cRows[0]?.count || 0
+  } catch (err) {
+    console.error('Neon register page error:', err)
   }
 
-  const registeredCount = activeTournament.teams?.[0]?.count || 0
-  const isClosed = registeredCount >= activeTournament.max_teams || !activeTournament.registration_open
+  const activeTournament = tournament || {
+    id: 'a0000000-0000-0000-0000-000000000001',
+    max_teams: 12,
+    registration_open: true,
+  }
+
+  const maxTeams = activeTournament.max_teams || MAX_TEAMS
+  const isClosed = registeredCount >= maxTeams || !activeTournament.registration_open
 
   return (
     <div className="min-h-screen flex flex-col bg-[#050507] text-white">
@@ -41,12 +47,12 @@ export default async function RegisterPage() {
         </div>
         
         {isClosed ? (
-          <RegistrationClosed maxTeams={activeTournament.max_teams} registeredCount={registeredCount} />
+          <RegistrationClosed maxTeams={maxTeams} registeredCount={registeredCount} />
         ) : (
           <RegistrationForm 
             tournamentId={activeTournament.id} 
             registeredCount={registeredCount} 
-            maxTeams={activeTournament.max_teams} 
+            maxTeams={maxTeams} 
           />
         )}
       </main>

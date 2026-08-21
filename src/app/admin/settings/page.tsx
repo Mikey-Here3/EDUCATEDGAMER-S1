@@ -1,24 +1,31 @@
-import { createClient } from '@/lib/supabase/server'
-import { TOURNAMENT_ID } from '@/lib/constants'
+import { sql } from '@/lib/db'
 import SettingsForm from '@/components/admin/settings-form'
 
-export default async function AdminSettingsPage() {
-  const supabase = await createClient()
+export const revalidate = 0
 
-  const { data: tournament } = await supabase
-    .from('tournaments')
-    .select('*')
-    .eq('id', TOURNAMENT_ID)
-    .single()
+export default async function AdminSettingsPage() {
+  let tournament: any = null
+
+  try {
+    const tRows = await sql`SELECT * FROM tournaments LIMIT 1;`
+    tournament = tRows[0] || null
+  } catch (err) {
+    console.error('Neon admin settings query error:', err)
+  }
+
+  const defaultTournament = tournament || {
+    max_teams: 12,
+    prize_pool: '1500 Rs',
+    status: 'upcoming',
+    registration_open: true,
+    map: '5-Map Series (Bermuda, Purgatory, Solara, NexTerra, Kalahari)',
+    game_mode: 'Battle Royale (Squad)',
+  }
 
   return (
-    <div className="flex flex-col gap-6 max-w-2xl mx-auto w-full p-6 text-white">
-      <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold tracking-tight">Tournament Settings</h1>
-      </div>
-      <div className="rounded-xl border border-white/10 bg-[#050507] p-6 shadow-xl">
-        <SettingsForm tournament={tournament} />
-      </div>
+    <div className="flex flex-col gap-6 p-6 text-white max-w-4xl">
+      <h1 className="text-3xl font-black tracking-tight font-heading">Tournament Settings</h1>
+      <SettingsForm tournament={defaultTournament} />
     </div>
   )
 }

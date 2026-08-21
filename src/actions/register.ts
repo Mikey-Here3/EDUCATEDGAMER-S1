@@ -1,14 +1,13 @@
 'use server'
 
-import { createAdminClient } from '@/lib/supabase/admin'
+import { sql } from '@/lib/db'
 import { sanitizeInput } from '@/lib/utils'
 import { RegistrationResult } from '@/types'
-import { TOURNAMENT_ID, MAX_TEAMS } from '@/lib/constants'
+import { MAX_TEAMS } from '@/lib/constants'
+import { revalidatePath } from 'next/cache'
 
 export async function registerTeam(formData: any): Promise<RegistrationResult> {
   try {
-    const supabaseAdmin = createAdminClient()
-
     if (!formData.teamName || !formData.leaderName || !formData.leaderUid || !formData.whatsapp) {
       return { success: false, error: 'Please fill in all required team captain details.' }
     }
@@ -21,128 +20,90 @@ export async function registerTeam(formData: any): Promise<RegistrationResult> {
     const sanitizedLogoUrl = formData.logoUrl ? sanitizeInput(formData.logoUrl) : null
 
     // Check duplicate team name
-    const { data: existingTeam } = await supabaseAdmin
-      .from('teams')
-      .select('id')
-      .eq('tournament_id', TOURNAMENT_ID)
-      .ilike('team_name', sanitizedTeamName)
-      .maybeSingle()
-
-    if (existingTeam) {
+    const existing = await sql`
+      SELECT id FROM teams WHERE LOWER(team_name) = LOWER(${sanitizedTeamName}) LIMIT 1;
+    `
+    if (existing.length > 0) {
       return { success: false, error: 'A team with this name is already registered.' }
     }
 
-    // Check existing approved team count
-    const { count: teamCount } = await supabaseAdmin
-      .from('teams')
-      .select('*', { count: 'exact', head: true })
-      .eq('tournament_id', TOURNAMENT_ID)
-      .not('status', 'in', '("rejected","cancelled")')
-
-    const teamNum = (teamCount || 0) + 1
+    // Get current count
+    const countRes = await sql`
+      SELECT COUNT(*)::int as count FROM teams WHERE status != 'rejected' AND status != 'cancelled';
+    `
+    const teamNum = (countRes[0]?.count || 0) + 1
     const teamCode = `EG-${teamNum.toString().padStart(3, '0')}`
 
-    // 1. Insert team
-    const { data: teamData, error: teamError } = await supabaseAdmin
-      .from('teams')
-      .insert({
-        tournament_id: TOURNAMENT_ID,
-        team_name: sanitizedTeamName,
-        leader_name: sanitizedLeaderName,
-        leader_uid: sanitizedLeaderUid,
-        whatsapp: sanitizedWhatsapp,
-        discord: sanitizedDiscord,
-        logo_url: sanitizedLogoUrl,
-        team_code: teamCode,
-        status: (teamCount || 0) < MAX_TEAMS ? 'pending' : 'pending' // pending review
-      })
-      .select('id, team_code')
-      .single()
+    // 1. Insert team into Neon
+    const insertedTeam = await sql`
+      INSERT INTO teams (
+        team_code, team_name, leader_name, leader_uid, whatsapp, discord, logo_url, status
+      ) VALUES (
+        ${teamCode}, ${sanitizedTeamName}, ${sanitizedLeaderName}, ${sanitizedLeaderUid}, ${sanitizedWhatsapp}, ${sanitizedDiscord}, ${sanitizedLogoUrl}, 'pending'
+      )
+      RETURNING id, team_code;
+    `
 
-    if (teamError) {
-      return { success: false, error: teamError.message || 'Failed to create team.' }
-    }
+    const teamId = insertedTeam[0].id
 
     // 2. Insert Leader as Player #1
-    const playersToInsert = [
-      {
-        team_id: teamData.id,
-        tournament_id: TOURNAMENT_ID,
-        player_name: sanitizedLeaderName,
-        free_fire_uid: sanitizedLeaderUid,
-        player_type: 'leader'
-      }
-    ]
+    await sql`
+      INSERT INTO players (team_id, player_name, free_fire_uid, player_type)
+      VALUES (${teamId}, ${sanitizedLeaderName}, ${sanitizedLeaderUid}, 'leader');
+    `
 
-    // 3. Insert Core Squad (Members #2, #3, #4)
+    // 3. Insert Core Squad Members
     if (formData.player2Name && formData.player2Uid) {
-      playersToInsert.push({
-        team_id: teamData.id,
-        tournament_id: TOURNAMENT_ID,
-        player_name: sanitizeInput(formData.player2Name),
-        free_fire_uid: sanitizeInput(formData.player2Uid),
-        player_type: 'player'
-      })
+      await sql`
+        INSERT INTO players (team_id, player_name, free_fire_uid, player_type)
+        VALUES (${teamId}, ${sanitizeInput(formData.player2Name)}, ${sanitizeInput(formData.player2Uid)}, 'player');
+      `
     }
     if (formData.player3Name && formData.player3Uid) {
-      playersToInsert.push({
-        team_id: teamData.id,
-        tournament_id: TOURNAMENT_ID,
-        player_name: sanitizeInput(formData.player3Name),
-        free_fire_uid: sanitizeInput(formData.player3Uid),
-        player_type: 'player'
-      })
+      await sql`
+        INSERT INTO players (team_id, player_name, free_fire_uid, player_type)
+        VALUES (${teamId}, ${sanitizeInput(formData.player3Name)}, ${sanitizeInput(formData.player3Uid)}, 'player');
+      `
     }
     if (formData.player4Name && formData.player4Uid) {
-      playersToInsert.push({
-        team_id: teamData.id,
-        tournament_id: TOURNAMENT_ID,
-        player_name: sanitizeInput(formData.player4Name),
-        free_fire_uid: sanitizeInput(formData.player4Uid),
-        player_type: 'player'
-      })
+      await sql`
+        INSERT INTO players (team_id, player_name, free_fire_uid, player_type)
+        VALUES (${teamId}, ${sanitizeInput(formData.player4Name)}, ${sanitizeInput(formData.player4Uid)}, 'player');
+      `
     }
 
-    // 4. Insert Substitutes (Up to 3 substitutes, making total up to 7 members)
+    // 4. Insert Substitutes (Up to 3 substitutes, 7 total players)
     if (formData.substituteName && formData.substituteUid) {
-      playersToInsert.push({
-        team_id: teamData.id,
-        tournament_id: TOURNAMENT_ID,
-        player_name: sanitizeInput(formData.substituteName),
-        free_fire_uid: sanitizeInput(formData.substituteUid),
-        player_type: 'substitute'
-      })
+      await sql`
+        INSERT INTO players (team_id, player_name, free_fire_uid, player_type)
+        VALUES (${teamId}, ${sanitizeInput(formData.substituteName)}, ${sanitizeInput(formData.substituteUid)}, 'substitute');
+      `
     }
     if (formData.substitute2Name && formData.substitute2Uid) {
-      playersToInsert.push({
-        team_id: teamData.id,
-        tournament_id: TOURNAMENT_ID,
-        player_name: sanitizeInput(formData.substitute2Name),
-        free_fire_uid: sanitizeInput(formData.substitute2Uid),
-        player_type: 'substitute'
-      })
+      await sql`
+        INSERT INTO players (team_id, player_name, free_fire_uid, player_type)
+        VALUES (${teamId}, ${sanitizeInput(formData.substitute2Name)}, ${sanitizeInput(formData.substitute2Uid)}, 'substitute');
+      `
     }
     if (formData.substitute3Name && formData.substitute3Uid) {
-      playersToInsert.push({
-        team_id: teamData.id,
-        tournament_id: TOURNAMENT_ID,
-        player_name: sanitizeInput(formData.substitute3Name),
-        free_fire_uid: sanitizeInput(formData.substitute3Uid),
-        player_type: 'substitute'
-      })
+      await sql`
+        INSERT INTO players (team_id, player_name, free_fire_uid, player_type)
+        VALUES (${teamId}, ${sanitizeInput(formData.substitute3Name)}, ${sanitizeInput(formData.substitute3Uid)}, 'substitute');
+      `
     }
 
-    // Insert all squad players
-    await supabaseAdmin.from('players').insert(playersToInsert)
+    revalidatePath('/')
+    revalidatePath('/teams')
+    revalidatePath('/admin/teams')
 
     return {
       success: true,
-      team_id: teamData.id,
-      team_code: teamData.team_code,
+      team_id: teamId,
+      team_code: teamCode,
       team_name: sanitizedTeamName
     }
   } catch (error: any) {
-    console.error('Registration server error:', error)
-    return { success: false, error: error.message || 'Internal server error' }
+    console.error('Neon registration error:', error)
+    return { success: false, error: error.message || 'Failed to submit registration to Neon database.' }
   }
 }

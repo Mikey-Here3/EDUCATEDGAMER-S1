@@ -1,26 +1,34 @@
+import { sql } from '@/lib/db'
 import TeamTable from '@/components/admin/team-table'
-import { createClient } from '@/lib/supabase/server'
+
+export const revalidate = 0
 
 export default async function AdminTeamsPage() {
-  const supabase = await createClient()
+  let teams: any[] = []
 
-  // Fetch teams with their players
-  const { data: teams, error } = await supabase
-    .from('teams')
-    .select('*, players(*)')
+  try {
+    const [teamsRows, playersRows] = await Promise.all([
+      sql`SELECT * FROM teams ORDER BY created_at DESC;`,
+      sql`SELECT * FROM players ORDER BY created_at ASC;`
+    ])
 
-  if (error) {
-    console.error('Error fetching teams:', error)
+    teams = teamsRows.map((team: any) => ({
+      ...team,
+      players: playersRows.filter((p: any) => p.team_id === team.id)
+    }))
+  } catch (err) {
+    console.error('Neon admin teams query error:', err)
   }
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-6 p-6 text-white max-w-6xl">
       <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold tracking-tight">Teams Management</h1>
+        <h1 className="text-3xl font-black tracking-tight font-heading">Teams & Squad Rosters</h1>
+        <span className="text-xs bg-white/5 border border-white/10 px-3 py-1.5 rounded-xl text-gray-400 font-mono">
+          Total: {teams.length} Teams
+        </span>
       </div>
-      <div className="rounded-md border bg-white p-4">
-        <TeamTable initialTeams={teams || []} />
-      </div>
+      <TeamTable initialTeams={teams} />
     </div>
   )
 }

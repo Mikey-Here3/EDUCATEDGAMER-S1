@@ -1,39 +1,56 @@
-import { createClient } from '@/lib/supabase/server';
-import { TOURNAMENT_ID, MAX_TEAMS } from '@/lib/constants';
-import Navbar from '@/components/layout/navbar';
-import Footer from '@/components/layout/footer';
-import Hero from '@/components/home/hero';
-import TournamentStats from '@/components/home/tournament-stats';
-import TournamentInfo from '@/components/home/tournament-info';
-import HowItWorks from '@/components/home/how-it-works';
-import TournamentOverview from '@/components/home/tournament-overview';
-import EsportsRules from '@/components/home/esports-rules';
-import StandingsLeaderboard from '@/components/home/standings-leaderboard';
-import WinnersSection from '@/components/home/winners-section';
-import FaqSection from '@/components/home/faq-section';
-import CommunitySection from '@/components/home/community-section';
+import { sql } from '@/lib/db'
+import { MAX_TEAMS } from '@/lib/constants'
+import Navbar from '@/components/layout/navbar'
+import Footer from '@/components/layout/footer'
+import Hero from '@/components/home/hero'
+import TournamentStats from '@/components/home/tournament-stats'
+import TournamentInfo from '@/components/home/tournament-info'
+import HowItWorks from '@/components/home/how-it-works'
+import TournamentOverview from '@/components/home/tournament-overview'
+import EsportsRules from '@/components/home/esports-rules'
+import StandingsLeaderboard from '@/components/home/standings-leaderboard'
+import WinnersSection from '@/components/home/winners-section'
+import FaqSection from '@/components/home/faq-section'
+import CommunitySection from '@/components/home/community-section'
+
+export const revalidate = 0 // live dynamic data
 
 export default async function HomePage() {
-  const supabase = await createClient();
-  
-  const [
-    { data: tournament },
-    { count: registeredCount },
-    { data: settingsData },
-    { data: standings },
-    { data: kills },
-    { data: winners },
-  ] = await Promise.all([
-    supabase.from('tournaments').select('*').eq('id', TOURNAMENT_ID).single(),
-    supabase.from('teams').select('*', { count: 'exact', head: true }).eq('tournament_id', TOURNAMENT_ID).not('status', 'in', '("rejected","cancelled")'),
-    supabase.from('tournament_settings').select('*').eq('tournament_id', TOURNAMENT_ID),
-    supabase.from('team_standings').select('*').eq('tournament_id', TOURNAMENT_ID).order('points', { ascending: false }),
-    supabase.from('mvp_kills').select('*').eq('tournament_id', TOURNAMENT_ID).order('kills', { ascending: false }),
-    supabase.from('winners').select('*').eq('tournament_id', TOURNAMENT_ID).order('position'),
-  ]);
+  let tournament: any = null
+  let registeredCount = 0
+  let standings: any[] = []
+  let kills: any[] = []
+  let winners: any[] = []
 
-  const settings = settingsData?.reduce((acc: any, s: any) => ({ ...acc, [s.key]: s.value }), {}) || {};
-  const activeTournament = tournament || { prize_pool: '1500 Rs', map: 'Bermuda', game_mode: 'Battle Royale', max_teams: 12, registration_open: true };
+  try {
+    const [tRes, cRes, sRes, kRes, wRes] = await Promise.all([
+      sql`SELECT * FROM tournaments LIMIT 1;`,
+      sql`SELECT COUNT(*)::int as count FROM teams WHERE status != 'rejected' AND status != 'cancelled';`,
+      sql`SELECT * FROM team_standings ORDER BY points DESC;`,
+      sql`SELECT * FROM mvp_kills ORDER BY kills DESC;`,
+      sql`SELECT * FROM winners ORDER BY position ASC;`,
+    ])
+
+    tournament = tRes[0] || null
+    registeredCount = cRes[0]?.count || 0
+    standings = sRes || []
+    kills = kRes || []
+    winners = wRes || []
+  } catch (err) {
+    console.error('Neon homepage query error:', err)
+  }
+
+  const activeTournament = tournament || {
+    prize_pool: '1500 Rs',
+    map: '5-Map Series (Bermuda, Purgatory, Solara, NexTerra, Kalahari)',
+    game_mode: 'Battle Royale (Squad)',
+    max_teams: 12,
+    registration_open: true,
+  }
+
+  const settings = {
+    custom_room_info: 'Lobby credentials shared on official WhatsApp 15m prior',
+  }
 
   return (
     <div className="min-h-screen bg-[#050507] text-white flex flex-col">
@@ -41,7 +58,7 @@ export default async function HomePage() {
       <main className="flex-1">
         <Hero 
           tournament={activeTournament} 
-          registeredCount={registeredCount || 0} 
+          registeredCount={registeredCount} 
           maxTeams={activeTournament.max_teams || MAX_TEAMS} 
           settings={settings} 
         />
@@ -62,7 +79,7 @@ export default async function HomePage() {
         <EsportsRules />
 
         {/* Standings Leaderboard + Most Kills */}
-        <StandingsLeaderboard standings={standings || []} kills={kills || []} />
+        <StandingsLeaderboard standings={standings} kills={kills} />
 
         {/* How to Compete */}
         <HowItWorks />
@@ -73,10 +90,10 @@ export default async function HomePage() {
         {/* FAQ */}
         <FaqSection />
 
-        {/* Community Section */}
+        {/* Community Section with Contribution Banner */}
         <CommunitySection />
       </main>
       <Footer />
     </div>
-  );
+  )
 }
