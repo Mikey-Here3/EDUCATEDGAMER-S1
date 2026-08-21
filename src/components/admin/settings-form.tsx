@@ -5,6 +5,13 @@ import { updateSettings } from '@/actions/admin-settings'
 import { TOURNAMENT_ID } from '@/lib/constants'
 import { Save, CheckCircle2, XCircle, Calendar, Clock, Trophy, Map, Users, Settings2, Radio } from 'lucide-react'
 
+const safeSlice = (val: any, len: number) => {
+  if (!val) return ''
+  if (typeof val === 'string') return val.slice(0, len)
+  if (val instanceof Date) return val.toISOString().slice(0, len)
+  return String(val).slice(0, len)
+}
+
 export default function SettingsForm({ tournament }: { tournament: any }) {
   const [isLoading, setIsLoading] = useState(false)
   const [status, setStatus] = useState<'idle' | 'success' | 'error'>('idle')
@@ -17,9 +24,9 @@ export default function SettingsForm({ tournament }: { tournament: any }) {
     map: tournament?.map || 'Bermuda, Purgatory, Solara, NexTerra, Kalahari',
     game_mode: tournament?.game_mode || 'Battle Royale (Squad)',
     max_teams: tournament?.max_teams || 12,
-    date: tournament?.date ? tournament.date.slice(0, 10) : '',
-    time: tournament?.time ? tournament.time.slice(0, 5) : '',
-    registration_deadline: tournament?.registration_deadline ? tournament.registration_deadline.slice(0, 16) : '',
+    date: safeSlice(tournament?.date, 10),
+    time: safeSlice(tournament?.time, 5),
+    registration_deadline: safeSlice(tournament?.registration_deadline, 16),
   })
 
   const set = (key: string, val: any) => setFormData(prev => ({ ...prev, [key]: val }))
