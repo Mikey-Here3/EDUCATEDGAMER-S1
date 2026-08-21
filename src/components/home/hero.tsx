@@ -16,7 +16,7 @@ interface HeroProps {
 
 export default function Hero({ tournament, registeredCount, maxTeams, settings }: HeroProps) {
   const isClosed = registeredCount >= maxTeams;
-  const prizePool = tournament?.prize_pool || '9,000 Diamonds';
+  const prizePool = (tournament?.prize_pool && tournament.prize_pool !== '1500 Rs') ? tournament.prize_pool : '1000 Rs';
   const gameMode = tournament?.game_mode || 'Battle Royale';
   const mapName = tournament?.map || 'Bermuda';
 
@@ -60,7 +60,7 @@ export default function Hero({ tournament, registeredCount, maxTeams, settings }
           {/* Prize Pool Badge */}
           <motion.div variants={itemVariants}>
             <span className="inline-flex items-center gap-2 bg-[#DC2626]/20 text-[#EF4444] border border-[#DC2626]/40 px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-widest animate-pulse">
-              <Flame className="w-4 h-4 text-orange-500 animate-bounce" /> {prizePool} Prize Pool
+              <Flame className="w-4 h-4 text-orange-500 animate-bounce" /> {prizePool} PRIZE POOL
             </span>
           </motion.div>
 
@@ -83,7 +83,7 @@ export default function Hero({ tournament, registeredCount, maxTeams, settings }
             </div>
             
             <p className="text-gray-400 text-sm md:text-base max-w-xl mx-auto lg:mx-0 pt-2 leading-relaxed">
-              <span className="text-[#EF4444] font-bold">20X REWARD • COMPETE • WIN.</span>
+              <span className="text-[#EF4444] font-bold">COMPETE • BOOYAH • WIN REWARDS.</span>
               <br />
               Only 12 teams. Next teams go to <span className="text-white font-bold">WAITING LIST</span>. If a team drops, waiting list plays. <br/>
               <span className="text-[#EF4444] font-bold">Entry Fee:</span> 100 Rs
@@ -97,7 +97,7 @@ export default function Hero({ tournament, registeredCount, maxTeams, settings }
           >
             <div className="text-center">
               <span className="text-lg md:text-xl font-black text-white block">
-                1500 Rs
+                1000 Rs
               </span>
               <span className="text-[9px] text-gray-500 uppercase font-bold tracking-wider">
                 Winner Prize
@@ -108,8 +108,8 @@ export default function Hero({ tournament, registeredCount, maxTeams, settings }
               <span className="text-[9px] text-gray-500 uppercase font-bold tracking-wider">MVP Kills</span>
             </div>
             <div className="text-center border-l border-white/10">
-              <span className="text-lg md:text-xl font-black text-white block">100 Rs</span>
-              <span className="text-[9px] text-gray-500 uppercase font-bold tracking-wider">Entry Fee</span>
+              <span className="text-lg md:text-xl font-black text-purple-400 block">100 Rs</span>
+              <span className="text-[9px] text-gray-500 uppercase font-bold tracking-wider">Giveaway</span>
             </div>
             <div className="text-center border-l border-white/10">
               <span className="text-lg md:text-xl font-black text-[#EF4444] block">{maxTeams}</span>
