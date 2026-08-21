@@ -12,8 +12,8 @@ export const NAV_LINKS = [
   { href: '/standings', label: 'Standings' },
   { href: '/teams', label: 'Teams' },
   { href: '/register', label: 'Register' },
+  { href: '/contribute', label: 'Contribute' },
   { href: '/#rules', label: 'Rules' },
-  { href: '/#faq', label: 'FAQ' },
   { href: '/contact', label: 'Contact' },
 ] as const;
 
