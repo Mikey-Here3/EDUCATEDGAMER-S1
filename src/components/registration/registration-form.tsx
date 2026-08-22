@@ -112,18 +112,21 @@ export function RegistrationForm({ tournamentId, registeredCount, maxTeams }: { 
     const MAX_SIZE = type === 'logo' ? 2 * 1024 * 1024 : 5 * 1024 * 1024
     const limitLabel = type === 'logo' ? '2MB' : '5MB'
     if (file.size > MAX_SIZE) {
-      setError(`Image too large! Max allowed size is ${limitLabel}. Please compress your image and try again.`)
+      setError(`Image too large! Max allowed size is ${limitLabel}. Please select a smaller file.`)
       return
     }
-
-    const formData = new FormData()
-    formData.append('file', file)
 
     if (type === 'logo') setIsUploadingLogo(true)
     if (type === 'uid') setIsUploadingUid(true)
     if (type === 'proof') setIsUploadingProof(true)
 
     try {
+      const { compressImage } = await import('@/lib/image-compressor')
+      const compressedFile = await compressImage(file)
+
+      const formData = new FormData()
+      formData.append('file', compressedFile)
+
       const { uploadImageToCloudinary } = await import('@/actions/upload')
       const res = await uploadImageToCloudinary(formData)
       if (res.success && res.url) {
@@ -134,7 +137,7 @@ export function RegistrationForm({ tournamentId, registeredCount, maxTeams }: { 
         setError(res.error || 'Failed to upload image to Cloudinary.')
       }
     } catch (err: any) {
-      setError('Upload failed. Please check network connection.')
+      setError(err?.message || 'Upload failed. Please check network connection.')
     } finally {
       if (type === 'logo') setIsUploadingLogo(false)
       if (type === 'uid') setIsUploadingUid(false)

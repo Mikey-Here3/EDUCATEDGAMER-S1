@@ -53,12 +53,15 @@ export default function ContributionShowcase({
       return
     }
 
-    const formData = new FormData()
-    formData.append('file', file)
-
     setIsUploading(true)
     setError('')
     try {
+      const { compressImage } = await import('@/lib/image-compressor')
+      const compressedFile = await compressImage(file)
+
+      const formData = new FormData()
+      formData.append('file', compressedFile)
+
       const { uploadImageToCloudinary } = await import('@/actions/upload')
       const res = await uploadImageToCloudinary(formData)
       if (res.success && res.url) {
@@ -67,7 +70,7 @@ export default function ContributionShowcase({
         setError(res.error || 'Failed to upload receipt screenshot.')
       }
     } catch (err: any) {
-      setError('Upload failed. Please check network connection.')
+      setError(err?.message || 'Upload failed. Please check network connection.')
     } finally {
       setIsUploading(false)
     }
