@@ -21,14 +21,16 @@ export default async function HomePage() {
   let standings: any[] = []
   let kills: any[] = []
   let winners: any[] = []
+  let teams: any[] = []
 
   try {
-    const [tRes, cRes, sRes, kRes, wRes] = await Promise.all([
+    const [tRes, cRes, sRes, kRes, wRes, teamsRes] = await Promise.all([
       sql`SELECT * FROM tournaments LIMIT 1;`,
       sql`SELECT COUNT(*)::int as count FROM teams WHERE status != 'rejected' AND status != 'cancelled';`,
       sql`SELECT * FROM team_standings ORDER BY points DESC;`,
       sql`SELECT * FROM mvp_kills ORDER BY kills DESC;`,
       sql`SELECT * FROM winners ORDER BY position ASC;`,
+      sql`SELECT id, team_name, logo_url, team_code FROM teams WHERE status != 'rejected';`,
     ])
 
     tournament = tRes[0] || null
@@ -36,12 +38,13 @@ export default async function HomePage() {
     standings = sRes || []
     kills = kRes || []
     winners = wRes || []
+    teams = teamsRes || []
   } catch (err) {
     console.error('Neon homepage query error:', err)
   }
 
   const activeTournament = tournament || {
-    prize_pool: '1500 Rs',
+    prize_pool: '1000 Rs',
     map: '5-Map Series (Bermuda, Purgatory, Solara, NexTerra, Kalahari)',
     game_mode: 'Battle Royale (Squad)',
     max_teams: 12,
@@ -79,7 +82,7 @@ export default async function HomePage() {
         <EsportsRules />
 
         {/* Standings Leaderboard + Most Kills */}
-        <StandingsLeaderboard standings={standings} kills={kills} />
+        <StandingsLeaderboard standings={standings} kills={kills} teams={teams} />
 
         {/* How to Compete */}
         <HowItWorks />

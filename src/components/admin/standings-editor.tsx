@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { Trophy, Crosshair, Plus, Trash2, Users, User, Shield } from 'lucide-react'
 import { upsertStanding, upsertKill, deleteStanding, deleteKill } from '@/actions/admin-standings'
+import { ensureAbsoluteUrl } from '@/lib/utils'
 
 export default function StandingsEditor({ standings, kills, teams = [], tournamentId }: any) {
   const [activeTab, setActiveTab] = useState<'standings' | 'kills'>('standings')
@@ -207,23 +208,40 @@ export default function StandingsEditor({ standings, kills, teams = [], tourname
                     </td>
                   </tr>
                 )}
-                {standingsData.map((row: any, i: number) => (
-                  <tr key={row.id || i} className="border-b border-white/5 hover:bg-white/5 transition-colors">
-                    <td className="p-4 font-mono font-black text-gray-400">#{i + 1}</td>
-                    <td className="p-4 font-bold text-white text-base">{row.team_name}</td>
-                    <td className="p-4 text-center text-gray-300 font-mono">{row.kills}</td>
-                    <td className="p-4 text-center font-black text-[#DC2626] font-mono text-lg">{row.points}</td>
-                    <td className="p-4 text-right">
-                      <button
-                        onClick={() => handleDeleteStanding(row.id)}
-                        className="p-2 bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded-lg transition-colors cursor-pointer"
-                        title="Delete Standing"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </td>
-                  </tr>
-                ))}
+                {standingsData.map((row: any, i: number) => {
+                  const matchedTeam = teams.find((t: any) => t.team_name?.toLowerCase() === row.team_name?.toLowerCase())
+                  const logoUrl = matchedTeam?.logo_url ? ensureAbsoluteUrl(matchedTeam.logo_url) : null
+                  const teamInitials = row.team_name ? row.team_name.slice(0, 2).toUpperCase() : 'EG'
+
+                  return (
+                    <tr key={row.id || i} className="border-b border-white/5 hover:bg-white/5 transition-colors">
+                      <td className="p-4 font-mono font-black text-gray-400">#{i + 1}</td>
+                      <td className="p-4 font-bold text-white text-base">
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 rounded-lg bg-black/60 border border-white/10 overflow-hidden flex items-center justify-center flex-shrink-0">
+                            {logoUrl ? (
+                              <img src={logoUrl} alt={row.team_name} className="w-full h-full object-cover" />
+                            ) : (
+                              <span className="font-mono text-[10px] font-black text-gray-300">{teamInitials}</span>
+                            )}
+                          </div>
+                          <span>{row.team_name}</span>
+                        </div>
+                      </td>
+                      <td className="p-4 text-center text-gray-300 font-mono">{row.kills}</td>
+                      <td className="p-4 text-center font-black text-[#DC2626] font-mono text-lg">{row.points}</td>
+                      <td className="p-4 text-right">
+                        <button
+                          onClick={() => handleDeleteStanding(row.id)}
+                          className="p-2 bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded-lg transition-colors cursor-pointer"
+                          title="Delete Standing"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </td>
+                    </tr>
+                  )
+                })}
               </tbody>
             </table>
           </div>
