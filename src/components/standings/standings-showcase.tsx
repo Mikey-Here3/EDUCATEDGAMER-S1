@@ -23,6 +23,14 @@ export default function StandingsShowcase({
     setExpandedTeamId(prev => (prev === id ? null : id))
   }
 
+  // Build map of individual player kills from initialKills table
+  const playerKillsMap: Record<string, number> = {}
+  initialKills.forEach(k => {
+    if (k.player_name) {
+      playerKillsMap[k.player_name.toLowerCase().trim()] = Number(k.kills || 0)
+    }
+  })
+
   return (
     <div className="container mx-auto px-4 max-w-6xl">
       {/* HEADER SECTION */}
@@ -35,7 +43,7 @@ export default function StandingsShowcase({
           <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#DC2626] to-orange-500">LEADERBOARD</span>
         </h1>
         <p className="text-gray-400 text-sm max-w-2xl mx-auto">
-          Official live tournament standings & MVP player kills. Updated after every match round.
+          Official live tournament standings, squad member kill counters & MVP stats. Updated after every match round.
         </p>
       </div>
 
@@ -98,6 +106,18 @@ export default function StandingsShowcase({
                       const teamInitials = row.team_name ? row.team_name.slice(0, 2).toUpperCase() : 'EG'
                       const players = matchedTeam?.players || []
 
+                      // Calculate sum of member kills for this squad
+                      let squadKillsSum = 0
+                      if (matchedTeam) {
+                        const captainK = playerKillsMap[matchedTeam.leader_name?.toLowerCase().trim()] || 0
+                        squadKillsSum += captainK
+                        players.forEach((p: any) => {
+                          if (p.player_name && p.player_name !== matchedTeam.leader_name) {
+                            squadKillsSum += (playerKillsMap[p.player_name.toLowerCase().trim()] || 0)
+                          }
+                        })
+                      }
+
                       const rankBadges: Record<number, { bg: string; text: string; icon: string }> = {
                         1: { bg: 'bg-yellow-500/20 border-yellow-500/40 text-yellow-400', text: '#1 BOOYAH', icon: '👑' },
                         2: { bg: 'bg-slate-300/20 border-slate-300/40 text-slate-200', text: '#2 RUNNER UP', icon: '🥈' },
@@ -156,7 +176,7 @@ export default function StandingsShowcase({
                                 onClick={() => toggleExpand(row.id || `${idx}`)}
                                 className="inline-flex items-center gap-1.5 bg-white/5 hover:bg-white/10 border border-white/10 px-3.5 py-1.5 rounded-xl text-xs font-bold text-gray-300 hover:text-white transition-all cursor-pointer"
                               >
-                                <span>{isExpanded ? 'Hide Roster' : 'View Roster'}</span>
+                                <span>{isExpanded ? 'Hide Roster' : 'View Roster & Member Kills'}</span>
                                 {isExpanded ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
                               </button>
                             ) : (
@@ -172,31 +192,51 @@ export default function StandingsShowcase({
                                   <div className="flex items-center gap-2">
                                     <Users className="w-4 h-4 text-[#DC2626]" />
                                     <span className="font-black text-white text-xs uppercase tracking-wider">
-                                      {row.team_name} — Squad Roster ({players.length + 1} Members)
+                                      {row.team_name} — Squad Member Kills ({players.length + 1} Players)
                                     </span>
                                   </div>
+                                  <span className="text-[11px] font-mono font-bold bg-red-500/10 border border-red-500/30 text-red-400 px-2.5 py-1 rounded-lg flex items-center gap-1">
+                                    <Target className="w-3.5 h-3.5" /> Squad Member Kills Total: {squadKillsSum}
+                                  </span>
                                 </div>
 
                                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
                                   {/* Captain Badge */}
-                                  <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-xl p-3 space-y-1">
-                                    <div className="flex items-center justify-between">
-                                      <span className="text-[10px] font-black text-yellow-400 uppercase tracking-wider flex items-center gap-1">
-                                        <Crown className="w-3.5 h-3.5" /> Captain
-                                      </span>
-                                      <span className="text-[9px] bg-yellow-500/20 text-yellow-300 font-mono px-1.5 py-0.5 rounded">
-                                        LEADER
-                                      </span>
-                                    </div>
-                                    <p className="font-bold text-white text-sm">{matchedTeam.leader_name}</p>
-                                    <p className="text-gray-400 font-mono text-[10px]">UID: {matchedTeam.leader_uid}</p>
-                                  </div>
+                                  {(() => {
+                                    const captainKills = playerKillsMap[matchedTeam.leader_name?.toLowerCase().trim()] || 0
+                                    return (
+                                      <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-xl p-3.5 space-y-2 relative overflow-hidden">
+                                        <div className="flex items-center justify-between">
+                                          <span className="text-[10px] font-black text-yellow-400 uppercase tracking-wider flex items-center gap-1">
+                                            <Crown className="w-3.5 h-3.5" /> Captain
+                                          </span>
+                                          <span className="text-[9px] bg-yellow-500/20 text-yellow-300 font-mono px-1.5 py-0.5 rounded">
+                                            LEADER
+                                          </span>
+                                        </div>
+                                        <div>
+                                          <p className="font-bold text-white text-sm">{matchedTeam.leader_name}</p>
+                                          <p className="text-gray-400 font-mono text-[10px]">UID: {matchedTeam.leader_uid}</p>
+                                        </div>
+
+                                        {/* Member Kills Counter */}
+                                        <div className="flex items-center justify-between text-xs font-mono border-t border-yellow-500/20 pt-2 mt-2">
+                                          <span className="text-gray-400 font-bold">Kills Count</span>
+                                          <span className="font-black text-yellow-400 flex items-center gap-1 bg-yellow-500/20 px-2 py-0.5 rounded border border-yellow-500/30">
+                                            <Target className="w-3 h-3 text-yellow-400" />
+                                            {captainKills} {captainKills === 1 ? 'Kill' : 'Kills'}
+                                          </span>
+                                        </div>
+                                      </div>
+                                    )
+                                  })()}
 
                                   {/* Roster Players */}
                                   {players.filter((p: any) => p.player_type !== 'leader').map((player: any, pIdx: number) => {
                                     const isSub = player.player_type === 'substitute'
+                                    const mKills = playerKillsMap[player.player_name?.toLowerCase().trim()] || 0
                                     return (
-                                      <div key={player.id || pIdx} className="bg-black/50 border border-white/5 rounded-xl p-3 space-y-1">
+                                      <div key={player.id || pIdx} className="bg-black/50 border border-white/5 rounded-xl p-3.5 space-y-2 relative">
                                         <div className="flex items-center justify-between">
                                           <span className={`text-[10px] font-black uppercase tracking-wider ${isSub ? 'text-gray-500' : 'text-red-400'}`}>
                                             {isSub ? 'Substitute' : `Player #${pIdx + 2}`}
@@ -205,8 +245,23 @@ export default function StandingsShowcase({
                                             {isSub ? 'SUB' : 'ROSTER'}
                                           </span>
                                         </div>
-                                        <p className="font-bold text-white text-sm">{player.player_name}</p>
-                                        <p className="text-gray-400 font-mono text-[10px]">UID: {player.free_fire_uid}</p>
+                                        <div>
+                                          <p className="font-bold text-white text-sm">{player.player_name}</p>
+                                          <p className="text-gray-400 font-mono text-[10px]">UID: {player.free_fire_uid}</p>
+                                        </div>
+
+                                        {/* Member Kills Counter */}
+                                        <div className="flex items-center justify-between text-xs font-mono border-t border-white/5 pt-2 mt-2">
+                                          <span className="text-gray-400 font-bold">Kills Count</span>
+                                          <span className={`font-black flex items-center gap-1 px-2 py-0.5 rounded border ${
+                                            mKills > 0 
+                                              ? 'bg-red-500/20 text-red-400 border-red-500/30' 
+                                              : 'bg-white/5 text-gray-500 border-white/5'
+                                          }`}>
+                                            <Target className="w-3 h-3 text-red-400" />
+                                            {mKills} {mKills === 1 ? 'Kill' : 'Kills'}
+                                          </span>
+                                        </div>
                                       </div>
                                     )
                                   })}
